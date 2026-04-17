@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type StickerShape = "rectangle" | "oval" | "circle" | "diecut";
+export type StickerShape = "rectangle" | "oval" | "circle" | "diecut" | "square" | "rounded";
 
 export type TextLayer = {
     id: string;
@@ -19,6 +19,7 @@ export type StudioState = {
     imageUrl: string | null; // generated/uploaded artwork
     // Step 2
     shape: StickerShape;
+    size: string;
     container: string;
     textLayers: TextLayer[];
     whiteBorder: boolean;
@@ -27,6 +28,7 @@ export type StudioState = {
     setStylePreset: (v: string | null) => void;
     setImage: (url: string | null) => void;
     setShape: (s: StickerShape) => void;
+    setSize: (v: string) => void;
     addTextLayer: () => void;
     updateTextLayer: (id: string, patch: Partial<TextLayer>) => void;
     removeTextLayer: (id: string) => void;
@@ -40,6 +42,7 @@ const initial = {
     stylePreset: null as string | null,
     imageUrl: null as string | null,
     shape: "rectangle" as StickerShape,
+    size: "medium",
     container: "wine",
     textLayers: [] as TextLayer[],
     whiteBorder: true,
@@ -51,6 +54,7 @@ export const useStudio = create<StudioState>((set) => ({
     setStylePreset: (v) => set({ stylePreset: v }),
     setImage: (url) => set({ imageUrl: url }),
     setShape: (s) => set({ shape: s }),
+    setSize: (v) => set({ size: v }),
     addTextLayer: () =>
           set((s) => {
                   if (s.textLayers.length >= 2) return s;
