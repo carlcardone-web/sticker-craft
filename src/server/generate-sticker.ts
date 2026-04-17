@@ -6,6 +6,9 @@ type Body = {
   prompt: string;
   stylePreset?: string | null;
   referenceImages?: ReferenceImage[] | null; // up to 3
+  container?: string | null;
+  shape?: string | null;
+  size?: string | null;
 };
 
 const STYLE_HINTS: Record<string, string> = {
@@ -17,8 +20,45 @@ const STYLE_HINTS: Record<string, string> = {
   cartoon: "playful cartoon illustration with bold outlines",
 };
 
-function buildPrompt(prompt: string, stylePreset?: string | null, refs: ReferenceImage[] = []) {
+const SHAPE_HINTS: Record<string, string> = {
+  circle: "Compose for a CIRCULAR die-cut sticker — subject fills the circular frame edge-to-edge, no empty corners",
+  square: "Compose for a SQUARE sticker — subject fills the square frame edge-to-edge, balanced composition",
+  rectangle: "Compose for a horizontal RECTANGULAR sticker — subject fills the rectangular frame edge-to-edge",
+  rounded: "Compose for a ROUNDED-SQUARE sticker — subject fills the rounded frame edge-to-edge",
+  oval: "Compose for an OVAL sticker — subject fills the oval frame edge-to-edge",
+  diecut: "Compose for a DIE-CUT contour sticker — subject silhouette defines the edge, no background",
+};
+
+const CONTAINER_HINTS: Record<string, string> = {
+  wine: "Designed to be applied to a wine bottle — elegant proportions suited to a bottle label",
+  can: "Designed to wrap a beverage can — bold, readable at a glance",
+  laptop: "Designed for a laptop lid — bold and crisp at arm's length",
+  waterbottle: "Designed for a reusable water bottle — durable-looking, readable on a curved surface",
+  notebook: "Designed for a notebook cover — refined, personal feel",
+  other: "Designed as a versatile sticker for everyday surfaces",
+};
+
+const SIZE_HINTS: Record<string, string> = {
+  "2in": "Sized at 2 inches — keep details bold and readable at very small scale",
+  "3in": "Sized at 3 inches — bold details, readable at small scale",
+  "4in": "Sized at 4 inches — room for moderate detail",
+  "5in": "Sized at 5 inches — room for richer detail",
+};
+
+function buildPrompt(
+  prompt: string,
+  stylePreset?: string | null,
+  refs: ReferenceImage[] = [],
+  container?: string | null,
+  shape?: string | null,
+  size?: string | null
+) {
   const style = stylePreset ? STYLE_HINTS[stylePreset] ?? "" : "";
+  const shapeHint = shape ? SHAPE_HINTS[shape] ?? "" : "";
+  const containerHint = container ? CONTAINER_HINTS[container] ?? "" : "";
+  const sizeHint = size ? SIZE_HINTS[size] ?? "" : "";
+  const shapeWord = shape ?? "frame";
+
   let refNote = "";
   if (refs.length === 1) {
     const role = (refs[0].role || "reference").toLowerCase();
@@ -32,8 +72,11 @@ function buildPrompt(prompt: string, stylePreset?: string | null, refs: Referenc
   return [
     prompt,
     style,
+    shapeHint,
+    containerHint,
+    sizeHint,
     refNote,
-    "Designed as a die-cut sticker: subject centered, clean composition, vibrant but tasteful colors, on a transparent or solid white background, no text or typography, no watermark.",
+    `Subject fills the entire ${shapeWord} frame edge-to-edge. No empty background, no padding, no watermark, no signature, no text, no typography.`,
   ]
     .filter(Boolean)
     .join(". ");
@@ -60,6 +103,9 @@ export const generateSticker = createServerFn({ method: "POST" })
       prompt: input.prompt,
       stylePreset: input.stylePreset ?? null,
       referenceImages: refs,
+      container: typeof input.container === "string" ? input.container.slice(0, 40) : null,
+      shape: typeof input.shape === "string" ? input.shape.slice(0, 40) : null,
+      size: typeof input.size === "string" ? input.size.slice(0, 10) : null,
     };
   })
   .handler(async ({ data }) => {
@@ -69,7 +115,14 @@ export const generateSticker = createServerFn({ method: "POST" })
     }
 
     const refs = data.referenceImages;
-    const fullPrompt = buildPrompt(data.prompt, data.stylePreset, refs);
+    const fullPrompt = buildPrompt(
+      data.prompt,
+      data.stylePreset,
+      refs,
+      data.container,
+      data.shape,
+      data.size
+    );
 
     const userContent =
       refs.length > 0

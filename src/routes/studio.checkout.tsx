@@ -19,9 +19,10 @@ export const Route = createFileRoute("/studio/checkout")({
 
 const QUANTITIES = [50, 100, 250, 500];
 const SIZES = [
-  { id: "2", label: '2"', mult: 1 },
-  { id: "3", label: '3"', mult: 1.4 },
-  { id: "4", label: '4"', mult: 1.85 },
+  { id: "2in", label: '2"', mult: 1 },
+  { id: "3in", label: '3"', mult: 1.4 },
+  { id: "4in", label: '4"', mult: 1.85 },
+  { id: "5in", label: '5"', mult: 2.3 },
 ];
 
 function priceFor(qty: number, sizeMult: number) {
@@ -32,7 +33,7 @@ function priceFor(qty: number, sizeMult: number) {
 function CheckoutPage() {
   const s = useStudio();
   const [qty, setQty] = useState(100);
-  const [sizeId, setSizeId] = useState("3");
+  const [sizeId, setSizeId] = useState<string>(s.size);
   const [downloaded, setDownloaded] = useState(false);
   const size = SIZES.find((x) => x.id === sizeId) ?? SIZES[1];
   const price = priceFor(qty, size.mult);
@@ -94,7 +95,7 @@ function CheckoutPage() {
 
           <div>
             <Label className="text-xs text-muted-foreground uppercase tracking-wider">Size</Label>
-            <div className="grid grid-cols-3 gap-2 mt-2">
+            <div className="grid grid-cols-4 gap-2 mt-2">
               {SIZES.map((sz) => (
                 <button key={sz.id} onClick={() => setSizeId(sz.id)} className={["py-2.5 rounded-xl text-sm font-medium border transition-all", sizeId === sz.id ? "border-primary bg-primary-soft" : "border-border bg-background hover:border-primary/40"].join(" ")}>
                   {sz.label}
