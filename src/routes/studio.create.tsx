@@ -330,7 +330,23 @@ function CreatePage() {
         <div className="rounded-3xl bg-card p-6 shadow-soft border border-border/60">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live preview</p>
           <div className="mt-4 flex items-center justify-center min-h-[280px]">
-            <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
+            {imageUrl ? (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/studio/customize" })}
+                className="group relative rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Edit sticker"
+              >
+                <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-foreground/0 group-hover:bg-foreground/40 transition-colors">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm">
+                    <Pencil className="h-3.5 w-3.5" /> Click to edit
+                  </span>
+                </span>
+              </button>
+            ) : (
+              <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
+            )}
           </div>
           <p className="mt-3 text-center text-xs text-muted-foreground">{activeContainer?.emoji} {activeContainer?.label ?? "Bottle"} · {activeShape?.label ?? "Label"} label</p>
           <Button asChild disabled={!imageUrl} size="lg" className="w-full mt-6 rounded-full">
