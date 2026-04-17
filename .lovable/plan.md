@@ -1,19 +1,32 @@
 
-Restrict the studio to **beverage containers only**. Looking at the preview area in `studio.create.tsx` / `StickerArtwork.tsx`, beverage-relevant containers are: **Wine bottle, Beer bottle, Champagne bottle, Spirits bottle, Can, Growler**. I'll need to confirm what the preview actually renders before finalizing the list.
+Combine both requirements into one edit of `src/server/generate-sticker.ts`. The "no transparent background" rule overrides Claude's "white or transparent background only" clause.
 
-**Plan:**
+**Single file: `src/server/generate-sticker.ts`**
 
-1. **`src/lib/studio-store.ts`**
-   - Replace `CONTAINER_CHOICES` with beverage-only options (e.g. Wine bottle, Beer bottle, Champagne bottle, Spirits bottle, Can, Growler — final list matched to whatever `StickerArtwork` actually previews).
-   - Default `container` stays `"wine"`.
+1. **Expand `CONTAINER_HINTS`** — rewrite each beverage entry with spatial geometry + label aesthetics:
+   - wine: central motif, ornamental framing, cream/off-white palette, premium wine-label feel
+   - beer: bold characterful design, readable on curved brown/green glass
+   - champagne: celebratory, gold/cream/black palette, refined neck-label proportions
+   - spirits: premium high-contrast, distinctive whiskey/gin/vodka label feel
+   - can: cylindrical wrap, bold high-contrast, no fine detail (lost on curves)
+   - growler: artisanal craft feel, bold readable design for large vessel
 
-2. **`src/server/generate-sticker.ts`**
-   - Update `CONTAINER_HINTS` map to match the new beverage-only set, with prompt language tailored to beverage labels (e.g. *"Designed as a beer bottle label — proportions suited to a curved bottle"*).
-   - Drop laptop / waterbottle / notebook / other entries.
+2. **Expand `STYLE_HINTS`** — 20–25 words each covering texture, line quality, palette, technique (watercolor, lineart, vintage, flat, photographic, cartoon).
 
-3. **`src/routes/studio.checkout.tsx`**
-   - If it still references the old container list (laptop, notebook, etc.), trim it to the beverage set or remove the container picker entirely (since it's already chosen in Create).
+3. **Add `ASPECT_HINTS`** dict per container (wine 2:3 portrait, beer 3:2, champagne ~1:1.2, spirits 2:3, can 3:1 panoramic, growler 4:2). Inject into prompt.
 
-**Files I'll verify first** before editing: `StickerArtwork.tsx` (to match preview options) and `studio.checkout.tsx` (to see if it duplicates container choices).
+4. **Sharpen reference notes** — single ref: *"extract only the {role} (e.g. colour palette, subject shape, brushwork style) from this image — do not copy literally."* Multi-ref version analogous.
 
-**Out of scope:** Shape, size, prompt, references, customize, preview — all unchanged.
+5. **Restructure `buildPrompt` order**:
+   - **Prefix (STRICT RULES)**: *"STRICT RULES: pure illustration only. No text, no words, no letters, no numbers, no watermark, no logo, no signature, no UI elements. NO transparent background, NO empty background, NO negative space, NO white padding."*
+   - User prompt
+   - Style hint
+   - Shape hint
+   - Container hint + aspect hint
+   - Size hint
+   - Conflict-resolution sentence (when both container and shape present): *"This artwork will be applied as a {container} label cut to a {shape} shape. Prioritise the {shape} frame fill, but reflect the {container} label aesthetic in colour, motif, and mood."*
+   - Reference note
+   - Edge-to-edge fill instruction (kept)
+   - **Final render clause** (overrides Claude's transparent allowance): *"Render as a print-quality illustration with crisp edges. The artwork must completely fill the {shape} frame with solid, fully-painted imagery — every pixel inside the frame is part of the illustration. No transparent areas."*
+
+**Unchanged:** validator, model, fetch logic, error handling, exports, UI, store, routes.
