@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { STYLE_PRESETS, useStudio } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { generateSticker } from "@/server/generate-sticker";
-import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert } from "lucide-react";
+import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert, ImagePlus, X } from "lucide-react";
 
 const BLOCKLIST = [
   "disney", "marvel", "pokemon", "mickey", "elsa", "spider-man", "spiderman",
