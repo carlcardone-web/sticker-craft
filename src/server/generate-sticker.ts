@@ -30,12 +30,12 @@ const SHAPE_HINTS: Record<string, string> = {
 };
 
 const CONTAINER_HINTS: Record<string, string> = {
-  wine: "Designed to be applied to a wine bottle — elegant proportions suited to a bottle label",
-  can: "Designed to wrap a beverage can — bold, readable at a glance",
-  laptop: "Designed for a laptop lid — bold and crisp at arm's length",
-  waterbottle: "Designed for a reusable water bottle — durable-looking, readable on a curved surface",
-  notebook: "Designed for a notebook cover — refined, personal feel",
-  other: "Designed as a versatile sticker for everyday surfaces",
+  wine: "Designed as a wine bottle label — elegant, refined proportions suited to a curved bottle",
+  beer: "Designed as a beer bottle label — bold, characterful, readable on a curved brown or green bottle",
+  champagne: "Designed as a champagne bottle label — celebratory, premium feel with refined detailing",
+  spirits: "Designed as a spirits bottle label (whiskey, gin, vodka) — premium, distinctive, high-contrast",
+  can: "Designed to wrap a beverage can — bold, punchy, readable at a glance on a cylindrical can",
+  growler: "Designed as a growler label — craft beverage feel, bold and artisanal on a large vessel",
 };
 
 const SIZE_HINTS: Record<string, string> = {

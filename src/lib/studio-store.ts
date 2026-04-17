@@ -89,19 +89,19 @@ export const useStudio = create<StudioState>((set) => ({
 }));
 
 export const SIZE_CHOICES: { id: StickerSize; label: string; hint: string }[] = [
-  { id: "2in", label: '2"', hint: "cans, phones" },
-  { id: "3in", label: '3"', hint: "bottles, mugs" },
-  { id: "4in", label: '4"', hint: "laptops, notebooks" },
-  { id: "5in", label: '5"', hint: "posters, big surfaces" },
+  { id: "2in", label: '2"', hint: "slim cans, minis" },
+  { id: "3in", label: '3"', hint: "cans, beer bottles" },
+  { id: "4in", label: '4"', hint: "wine, spirits" },
+  { id: "5in", label: '5"', hint: "magnums, growlers" },
 ];
 
 export const CONTAINER_CHOICES = [
   { id: "wine", label: "Wine bottle" },
+  { id: "beer", label: "Beer bottle" },
+  { id: "champagne", label: "Champagne bottle" },
+  { id: "spirits", label: "Spirits bottle" },
   { id: "can", label: "Can" },
-  { id: "laptop", label: "Laptop" },
-  { id: "waterbottle", label: "Water bottle" },
-  { id: "notebook", label: "Notebook" },
-  { id: "other", label: "Other" },
+  { id: "growler", label: "Growler" },
 ];
 
 export const STYLE_PRESETS = [
