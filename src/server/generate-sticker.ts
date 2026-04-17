@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getLabelDimensions } from "@/lib/studio-store";
 
 type ReferenceImage = { url: string; role?: string };
 
@@ -8,7 +9,6 @@ type Body = {
     referenceImages?: ReferenceImage[] | null; // up to 3
     container?: string | null;
     shape?: string | null;
-    size?: string | null;
     volume?: string | null;
 };
 
@@ -49,15 +49,6 @@ const CONTAINER_HINTS: Record<string, string> = {
           "Label artwork for a growler — artisanal craft-beverage feel, bold and readable on a large vessel, hand-crafted illustration energy, confident typographic-style composition without actual letters",
 };
 
-const ASPECT_HINTS: Record<string, string> = {
-    wine: "portrait orientation, taller than wide, label proportions roughly 2:3",
-    beer: "landscape-leaning, slightly wider than tall, label proportions roughly 3:2",
-    champagne: "near-square portrait label proportions roughly 1:1.2",
-    spirits: "portrait, tall and narrow, label proportions roughly 2:3",
-    can: "wide panoramic format that wraps a cylinder, label proportions roughly 3:1",
-    growler: "landscape, wide and short, label proportions roughly 4:2",
-};
-
 function buildPrompt(
     prompt: string,
     stylePreset?: string | null,
@@ -69,16 +60,14 @@ function buildPrompt(
     const style = stylePreset ? STYLE_HINTS[stylePreset] ?? "" : "";
     const shapeHint = shape ? SHAPE_HINTS[shape] ?? "" : "";
     const containerHint = container ? CONTAINER_HINTS[container] ?? "" : "";
-    const aspectHint = container ? ASPECT_HINTS[container] ?? "" : "";
     const shapeWord = shape ?? "frame";
 
     const strictRules =
           "STRICT RULES: pure illustration only. No text, no words, no letters, no numbers, no watermark, no logo, no signature, no UI elements. NO transparent background, NO empty background, NO negative space, NO white padding";
 
-    const containerCombined = [containerHint, aspectHint].filter(Boolean).join(" — ");
-
-    const volumeNote = volume && container
-        ? `Label sized and proportioned for a ${volume} ${container}.`
+    const dims = getLabelDimensions(container, volume);
+    const dimensionNote = dims && container && volume
+        ? `Compose for a label printed at exactly ${dims.w} cm wide × ${dims.h} cm tall (aspect ratio ${dims.w}:${dims.h}${dims.kind === "wrap" ? ", panoramic full-wrap format" : ""}). Every element must be sized and positioned to read clearly at this physical scale on a ${volume} ${container}.`
         : "";
 
     const conflictNote =
