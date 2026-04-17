@@ -45,7 +45,9 @@ function CreatePage() {
   } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+
+  const MAX_REFS = 3;
 
   function moderate(text: string): string | null {
     const lower = text.toLowerCase();
@@ -61,7 +63,7 @@ function CreatePage() {
     setLoading(true);
     try {
       const { imageUrl: url } = await generateSticker({
-        data: { prompt, stylePreset, referenceImage },
+        data: { prompt, stylePreset, referenceImages },
       });
       setImage(url);
     } catch (e) {
@@ -79,14 +81,31 @@ function CreatePage() {
     reader.readAsDataURL(file);
   }
 
-  function onReferenceUpload(file: File) {
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Reference image must be under 8MB.");
+  function onReferenceUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const remaining = MAX_REFS - referenceImages.length;
+    if (remaining <= 0) {
+      toast.error(`You can attach up to ${MAX_REFS} reference images.`);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setReferenceImage(reader.result as string);
-    reader.readAsDataURL(file);
+    const picked = Array.from(files).slice(0, remaining);
+    picked.forEach((file) => {
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error(`${file.name} is over 8MB and was skipped.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setReferenceImages((prev) =>
+          prev.length >= MAX_REFS ? prev : [...prev, reader.result as string]
+        );
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function removeReference(index: number) {
+    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
