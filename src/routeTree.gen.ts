@@ -9,38 +9,120 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StudioRouteImport } from './routes/studio'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StudioIndexRouteImport } from './routes/studio.index'
+import { Route as StudioPreviewRouteImport } from './routes/studio.preview'
+import { Route as StudioCustomizeRouteImport } from './routes/studio.customize'
+import { Route as StudioCreateRouteImport } from './routes/studio.create'
+import { Route as StudioCheckoutRouteImport } from './routes/studio.checkout'
 
+const StudioRoute = StudioRouteImport.update({
+  id: '/studio',
+  path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioIndexRoute = StudioIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioPreviewRoute = StudioPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioCustomizeRoute = StudioCustomizeRouteImport.update({
+  id: '/customize',
+  path: '/customize',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioCreateRoute = StudioCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioCheckoutRoute = StudioCheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => StudioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/studio': typeof StudioRouteWithChildren
+  '/studio/checkout': typeof StudioCheckoutRoute
+  '/studio/create': typeof StudioCreateRoute
+  '/studio/customize': typeof StudioCustomizeRoute
+  '/studio/preview': typeof StudioPreviewRoute
+  '/studio/': typeof StudioIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/studio/checkout': typeof StudioCheckoutRoute
+  '/studio/create': typeof StudioCreateRoute
+  '/studio/customize': typeof StudioCustomizeRoute
+  '/studio/preview': typeof StudioPreviewRoute
+  '/studio': typeof StudioIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/studio': typeof StudioRouteWithChildren
+  '/studio/checkout': typeof StudioCheckoutRoute
+  '/studio/create': typeof StudioCreateRoute
+  '/studio/customize': typeof StudioCustomizeRoute
+  '/studio/preview': typeof StudioPreviewRoute
+  '/studio/': typeof StudioIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/studio'
+    | '/studio/checkout'
+    | '/studio/create'
+    | '/studio/customize'
+    | '/studio/preview'
+    | '/studio/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/studio/checkout'
+    | '/studio/create'
+    | '/studio/customize'
+    | '/studio/preview'
+    | '/studio'
+  id:
+    | '__root__'
+    | '/'
+    | '/studio'
+    | '/studio/checkout'
+    | '/studio/create'
+    | '/studio/customize'
+    | '/studio/preview'
+    | '/studio/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  StudioRoute: typeof StudioRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/studio': {
+      id: '/studio'
+      path: '/studio'
+      fullPath: '/studio'
+      preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +130,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/': {
+      id: '/studio/'
+      path: '/'
+      fullPath: '/studio/'
+      preLoaderRoute: typeof StudioIndexRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/preview': {
+      id: '/studio/preview'
+      path: '/preview'
+      fullPath: '/studio/preview'
+      preLoaderRoute: typeof StudioPreviewRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/customize': {
+      id: '/studio/customize'
+      path: '/customize'
+      fullPath: '/studio/customize'
+      preLoaderRoute: typeof StudioCustomizeRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/create': {
+      id: '/studio/create'
+      path: '/create'
+      fullPath: '/studio/create'
+      preLoaderRoute: typeof StudioCreateRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/checkout': {
+      id: '/studio/checkout'
+      path: '/checkout'
+      fullPath: '/studio/checkout'
+      preLoaderRoute: typeof StudioCheckoutRouteImport
+      parentRoute: typeof StudioRoute
+    }
   }
 }
 
+interface StudioRouteChildren {
+  StudioCheckoutRoute: typeof StudioCheckoutRoute
+  StudioCreateRoute: typeof StudioCreateRoute
+  StudioCustomizeRoute: typeof StudioCustomizeRoute
+  StudioPreviewRoute: typeof StudioPreviewRoute
+  StudioIndexRoute: typeof StudioIndexRoute
+}
+
+const StudioRouteChildren: StudioRouteChildren = {
+  StudioCheckoutRoute: StudioCheckoutRoute,
+  StudioCreateRoute: StudioCreateRoute,
+  StudioCustomizeRoute: StudioCustomizeRoute,
+  StudioPreviewRoute: StudioPreviewRoute,
+  StudioIndexRoute: StudioIndexRoute,
+}
+
+const StudioRouteWithChildren =
+  StudioRoute._addFileChildren(StudioRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  StudioRoute: StudioRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
