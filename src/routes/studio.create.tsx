@@ -103,12 +103,6 @@ function CreatePage() {
     }
   }
 
-  function onUpload(file: File) {
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(file);
-  }
-
   function onReferenceUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
     const remaining = MAX_REFS - referenceImages.length;
