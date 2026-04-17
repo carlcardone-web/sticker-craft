@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { STYLE_PRESETS, useStudio } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { generateSticker } from "@/server/generate-sticker";
-import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert } from "lucide-react";
+import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert, ImagePlus, X } from "lucide-react";
 
 const BLOCKLIST = [
   "disney", "marvel", "pokemon", "mickey", "elsa", "spider-man", "spiderman",
@@ -45,6 +45,7 @@ function CreatePage() {
   } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
 
   function moderate(text: string): string | null {
     const lower = text.toLowerCase();
@@ -59,7 +60,9 @@ function CreatePage() {
     if (m) { setError(m); return; }
     setLoading(true);
     try {
-      const { imageUrl: url } = await generateSticker({ data: { prompt, stylePreset } });
+      const { imageUrl: url } = await generateSticker({
+        data: { prompt, stylePreset, referenceImage },
+      });
       setImage(url);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong.";
@@ -73,6 +76,16 @@ function CreatePage() {
   function onUpload(file: File) {
     const reader = new FileReader();
     reader.onload = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function onReferenceUpload(file: File) {
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Reference image must be under 8MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setReferenceImage(reader.result as string);
     reader.readAsDataURL(file);
   }
 
@@ -120,6 +133,38 @@ function CreatePage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Reference photo <span className="normal-case tracking-normal text-muted-foreground/70">(optional)</span>
+              </p>
+              {referenceImage ? (
+                <div className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-card">
+                  <img src={referenceImage} alt="Reference" className="h-16 w-16 rounded-xl object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">Reference attached</p>
+                    <p className="text-xs text-muted-foreground">Mention it in your description (e.g. “the person in the photo”).</p>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setReferenceImage(null)} className="rounded-full">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => e.target.files?.[0] && onReferenceUpload(e.target.files[0])}
+                  />
+                  <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Add a reference photo</p>
+                    <p className="text-xs text-muted-foreground">A friend, pet, place — anything we should draw inspiration from.</p>
+                  </div>
+                </label>
+              )}
             </div>
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
