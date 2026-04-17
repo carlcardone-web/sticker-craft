@@ -45,9 +45,10 @@ function CreatePage() {
   } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [referenceImages, setReferenceImages] = useState<{ url: string; role: string }[]>([]);
 
   const MAX_REFS = 3;
+  const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
 
   function moderate(text: string): string | null {
     const lower = text.toLowerCase();
@@ -97,11 +98,17 @@ function CreatePage() {
       const reader = new FileReader();
       reader.onload = () => {
         setReferenceImages((prev) =>
-          prev.length >= MAX_REFS ? prev : [...prev, reader.result as string]
+          prev.length >= MAX_REFS
+            ? prev
+            : [...prev, { url: reader.result as string, role: "Subject" }]
         );
       };
       reader.readAsDataURL(file);
     });
+  }
+
+  function updateReferenceRole(index: number, role: string) {
+    setReferenceImages((prev) => prev.map((r, i) => (i === index ? { ...r, role } : r)));
   }
 
   function removeReference(index: number) {
