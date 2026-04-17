@@ -39,9 +39,14 @@ export const Route = createFileRoute("/studio/create")({
 });
 
 function CreatePage() {
-  const { prompt, stylePreset, imageUrl, setPrompt, setStylePreset, setImage, shape, textLayers, whiteBorder } = useStudio();
+  const {
+    prompt, stylePreset, imageUrl, provider, quality,
+    setPrompt, setStylePreset, setImage, setProvider, setQuality,
+    shape, textLayers, whiteBorder,
+  } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [replicateUnlocked, setReplicateUnlocked] = useState(false);
 
   function moderate(text: string): string | null {
     const lower = text.toLowerCase();
@@ -55,17 +60,95 @@ function CreatePage() {
     const m = moderate(prompt);
     if (m) { setError(m); return; }
     setLoading(true);
-    // Placeholder: a soft sage gradient SVG until Replicate is wired
-    await new Promise((r) => setTimeout(r, 900));
-    const svg = `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><radialGradient id="g" cx="50%" cy="40%"><stop offset="0%" stop-color="%23c9d8c5"/><stop offset="100%" stop-color="%237ea38a"/></radialGradient></defs><rect width="400" height="400" fill="url(%23g)"/><text x="50%" y="55%" text-anchor="middle" font-family="Inter,sans-serif" font-size="22" fill="white" opacity="0.85">${(prompt || "Your design").slice(0, 28)}</text></svg>`;
-    setImage(`data:image/svg+xml;utf8,${svg}`);
-    setLoading(false);
+    try {
+      const fn = provider === "replicate" ? generateStickerReplicate : generateSticker;
+      const { imageUrl: url } = await fn({ data: { prompt, stylePreset, quality } });
+      setImage(url);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Something went wrong.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   }
 
   function onUpload(file: File) {
     const reader = new FileReader();
     reader.onload = () => setImage(reader.result as string);
     reader.readAsDataURL(file);
+  }
+
+  function EngineControls() {
+    return (
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="inline-flex rounded-full bg-muted p-1">
+          <button
+            type="button"
+            onClick={() => setProvider("lovable")}
+            className={[
+              "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+              provider === "lovable" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+            ].join(" ")}
+          >
+            Lovable AI · Free
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (!replicateUnlocked) {
+                toast.message("Connect Replicate to use Flux", {
+                  description: "Add your Replicate API token, then switch engines.",
+                });
+                return;
+              }
+              setProvider("replicate");
+            }}
+            className={[
+              "px-3 py-1.5 rounded-full text-xs font-medium transition-all inline-flex items-center gap-1.5",
+              provider === "replicate" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+              !replicateUnlocked ? "opacity-60" : "",
+            ].join(" ")}
+          >
+            Replicate Flux
+            {!replicateUnlocked && <KeyRound className="h-3 w-3" />}
+          </button>
+        </div>
+
+        <div className="inline-flex rounded-full bg-muted p-1">
+          {(["fast", "high"] as Quality[]).map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => setQuality(q)}
+              className={[
+                "px-3 py-1.5 rounded-full text-xs font-medium transition-all inline-flex items-center gap-1",
+                quality === q ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+              ].join(" ")}
+            >
+              {q === "fast" ? <Zap className="h-3 w-3" /> : <Gem className="h-3 w-3" />}
+              {q === "fast" ? "Fast" : "High quality"}
+            </button>
+          ))}
+        </div>
+
+        {!replicateUnlocked && (
+          <button
+            type="button"
+            onClick={() => {
+              toast.info("Add your Replicate API token", {
+                description: "Get one at replicate.com/account/api-tokens, then ask me to connect it.",
+                duration: 6000,
+              });
+              setReplicateUnlocked(true);
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+          >
+            Connect Replicate
+          </button>
+        )}
+      </div>
+    );
   }
 
   return (
