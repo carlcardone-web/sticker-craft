@@ -45,9 +45,10 @@ function CreatePage() {
   } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+  const [referenceImages, setReferenceImages] = useState<{ url: string; role: string }[]>([]);
 
   const MAX_REFS = 3;
+  const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
 
   function moderate(text: string): string | null {
     const lower = text.toLowerCase();
@@ -97,11 +98,17 @@ function CreatePage() {
       const reader = new FileReader();
       reader.onload = () => {
         setReferenceImages((prev) =>
-          prev.length >= MAX_REFS ? prev : [...prev, reader.result as string]
+          prev.length >= MAX_REFS
+            ? prev
+            : [...prev, { url: reader.result as string, role: "Subject" }]
         );
       };
       reader.readAsDataURL(file);
     });
+  }
+
+  function updateReferenceRole(index: number, role: string) {
+    setReferenceImages((prev) => prev.map((r, i) => (i === index ? { ...r, role } : r)));
   }
 
   function removeReference(index: number) {
@@ -159,17 +166,50 @@ function CreatePage() {
                 Reference photos <span className="normal-case tracking-normal text-muted-foreground/70">(optional, up to {MAX_REFS})</span>
               </p>
               <div className="grid grid-cols-3 gap-3">
-                {referenceImages.map((src, i) => (
-                  <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-border bg-card">
-                    <img src={src} alt={`Reference ${i + 1}`} className="h-full w-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeReference(i)}
-                      className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-background/90 border border-border flex items-center justify-center shadow-sm hover:bg-background"
-                      aria-label="Remove reference"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
+                {referenceImages.map((ref, i) => (
+                  <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
+                    <div className="relative aspect-square">
+                      <img src={ref.url} alt={`Reference ${i + 1}`} className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeReference(i)}
+                        className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-background/90 border border-border flex items-center justify-center shadow-sm hover:bg-background"
+                        aria-label="Remove reference"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="p-2 space-y-1.5">
+                      <input
+                        type="text"
+                        value={ref.role}
+                        onChange={(e) => updateReferenceRole(i, e.target.value)}
+                        placeholder="Role (e.g. Subject)"
+                        maxLength={60}
+                        list={`role-presets-${i}`}
+                        className="w-full text-xs px-2 py-1.5 rounded-lg bg-muted/60 border border-transparent focus:border-primary/40 focus:bg-background outline-none"
+                      />
+                      <datalist id={`role-presets-${i}`}>
+                        {ROLE_PRESETS.map((p) => <option key={p} value={p} />)}
+                      </datalist>
+                      <div className="flex flex-wrap gap-1">
+                        {ROLE_PRESETS.slice(0, 3).map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => updateReferenceRole(i, p)}
+                            className={[
+                              "text-[10px] px-1.5 py-0.5 rounded-full transition-colors",
+                              ref.role.toLowerCase() === p.toLowerCase()
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-muted text-muted-foreground hover:bg-accent",
+                            ].join(" ")}
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 ))}
                 {referenceImages.length < MAX_REFS && (

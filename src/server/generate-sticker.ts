@@ -1,9 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 
+type ReferenceImage = { url: string; role?: string };
+
 type Body = {
   prompt: string;
   stylePreset?: string | null;
-  referenceImages?: string[] | null; // data URLs or https URLs, up to 3
+  referenceImages?: ReferenceImage[] | null; // up to 3
 };
 
 const STYLE_HINTS: Record<string, string> = {
@@ -15,14 +17,17 @@ const STYLE_HINTS: Record<string, string> = {
   cartoon: "playful cartoon illustration with bold outlines",
 };
 
-function buildPrompt(prompt: string, stylePreset?: string | null, refCount = 0) {
+function buildPrompt(prompt: string, stylePreset?: string | null, refs: ReferenceImage[] = []) {
   const style = stylePreset ? STYLE_HINTS[stylePreset] ?? "" : "";
   let refNote = "";
-  if (refCount === 1) {
-    refNote =
-      "Use the attached image as a visual reference for the subject (likeness, pose, key features). Reinterpret it as an illustration — do not copy the photo verbatim.";
-  } else if (refCount > 1) {
-    refNote = `Use the ${refCount} attached images together as visual references. Blend their subjects, colors, and moods into a single cohesive sticker composition. Reinterpret them as an illustration — do not copy any photo verbatim.`;
+  if (refs.length === 1) {
+    const role = (refs[0].role || "reference").toLowerCase();
+    refNote = `Use the attached image as the ${role} reference. Reinterpret it as an illustration — do not copy the photo verbatim.`;
+  } else if (refs.length > 1) {
+    const roleList = refs
+      .map((r, i) => `image ${i + 1} = ${(r.role || "reference").toLowerCase()}`)
+      .join(", ");
+    refNote = `You are given ${refs.length} reference images, each with a specific role: ${roleList}. Combine them into a single cohesive sticker, drawing each aspect from its assigned image. Reinterpret as an illustration — do not copy any photo verbatim.`;
   }
   return [
     prompt,
@@ -40,11 +45,16 @@ export const generateSticker = createServerFn({ method: "POST" })
       throw new Error("Prompt is required");
     }
     if (input.prompt.length > 1000) throw new Error("Prompt too long");
-    const refs = Array.isArray(input.referenceImages)
-      ? input.referenceImages.filter((s) => typeof s === "string" && s.length > 0)
+    const refs: ReferenceImage[] = Array.isArray(input.referenceImages)
+      ? input.referenceImages
+          .filter((r) => r && typeof r.url === "string" && r.url.length > 0)
+          .map((r) => ({
+            url: r.url,
+            role: typeof r.role === "string" ? r.role.slice(0, 60) : "",
+          }))
       : [];
     if (refs.length > 3) throw new Error("Up to 3 reference images allowed");
-    const totalSize = refs.reduce((n, s) => n + s.length, 0);
+    const totalSize = refs.reduce((n, r) => n + r.url.length, 0);
     if (totalSize > 24_000_000) throw new Error("Reference images too large");
     return {
       prompt: input.prompt,
@@ -59,13 +69,13 @@ export const generateSticker = createServerFn({ method: "POST" })
     }
 
     const refs = data.referenceImages;
-    const fullPrompt = buildPrompt(data.prompt, data.stylePreset, refs.length);
+    const fullPrompt = buildPrompt(data.prompt, data.stylePreset, refs);
 
     const userContent =
       refs.length > 0
         ? [
             { type: "text", text: fullPrompt },
-            ...refs.map((url) => ({ type: "image_url", image_url: { url } })),
+            ...refs.map((r) => ({ type: "image_url", image_url: { url: r.url } })),
           ]
         : fullPrompt;
 
