@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -6,8 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
   FONT_CHOICES,
-  SIZE_CHOICES,
   CONTAINER_CHOICES,
+  getLabelDimensions,
   useStudio,
 } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
@@ -25,11 +26,18 @@ export const Route = createFileRoute("/studio/customize")({
 
 function CustomizePage() {
   const s = useStudio();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!s.container || !s.volume) {
+      navigate({ to: "/studio/bottle" });
+    }
+  }, [s.container, s.volume, navigate]);
 
   const containerLabel = CONTAINER_CHOICES.find((c) => c.id === s.container)?.label ?? s.container ?? "Bottle";
   const containerEmoji = CONTAINER_CHOICES.find((c) => c.id === s.container)?.emoji ?? "";
-  const sizeLabel = SIZE_CHOICES.find((sz) => sz.id === s.size)?.label ?? s.size;
-  const shapeLabel = s.shape.charAt(0).toUpperCase() + s.shape.slice(1);
+  const dims = getLabelDimensions(s.container, s.volume);
+  const dimsLabel = dims ? `${dims.w} × ${dims.h} cm` : null;
 
   return (
     <div className="grid lg:grid-cols-[420px_1fr] gap-8 lg:gap-12">
@@ -42,7 +50,9 @@ function CustomizePage() {
         <div className="flex items-center justify-between rounded-2xl bg-muted/50 border border-border/60 px-4 py-3 text-sm">
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-muted-foreground shrink-0">Designing for:</span>
-            <span className="font-medium truncate">{containerEmoji} {containerLabel} · {s.volume ?? sizeLabel} · {shapeLabel}</span>
+            <span className="font-medium truncate">
+              {containerEmoji} {containerLabel} · {s.volume}{dimsLabel ? ` · label ${dimsLabel}` : ""}
+            </span>
           </div>
           <Link to="/studio/bottle" className="text-primary hover:underline shrink-0 ml-2">Change</Link>
         </div>
@@ -124,7 +134,15 @@ function CustomizePage() {
       </aside>
 
       <section className="rounded-3xl bg-card p-8 lg:p-12 shadow-soft border border-border/60 flex items-center justify-center min-h-[420px]">
-        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} size={360} />
+        <StickerArtwork
+          imageUrl={s.imageUrl}
+          shape={s.shape}
+          textLayers={s.textLayers}
+          whiteBorder={s.whiteBorder}
+          container={s.container}
+          volume={s.volume}
+          size={360}
+        />
       </section>
     </div>
   );

@@ -6,7 +6,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   STYLE_PRESETS,
-  SIZE_CHOICES,
   CONTAINER_CHOICES,
   useStudio,
   type StickerShape,
@@ -60,9 +59,7 @@ function CreatePage() {
     prompt, stylePreset, imageUrl,
     setPrompt, setStylePreset, setImage,
     shape, setShape,
-    size, setSize,
     container, volume,
-    textLayers, whiteBorder,
   } = useStudio();
   const navigate = useNavigate();
   const activeContainer = CONTAINER_CHOICES.find((c) => c.id === container);
@@ -94,7 +91,7 @@ function CreatePage() {
     setLoading(true);
     try {
       const { imageUrl: url } = await generateSticker({
-        data: { prompt, stylePreset, referenceImages, container, shape, size, volume },
+        data: { prompt, stylePreset, referenceImages, container, shape, volume },
       });
       setImage(url);
     } catch (e) {
@@ -161,29 +158,8 @@ function CreatePage() {
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Create your sticker</h1>
         <p className="mt-2 text-muted-foreground">Describe it, upload a photo, or pick a template.</p>
 
-        {/* Size / Shape */}
+        {/* Shape */}
         <div className="mt-8 space-y-5 rounded-3xl border border-border/60 bg-card/50 p-5">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Size</p>
-            <div className="grid grid-cols-4 gap-2">
-              {SIZE_CHOICES.map((sz) => (
-                <button
-                  key={sz.id}
-                  onClick={() => setSize(sz.id)}
-                  className={[
-                    "flex flex-col items-center gap-0.5 py-2.5 rounded-xl border transition-all",
-                    size === sz.id
-                      ? "border-primary bg-primary-soft shadow-sm"
-                      : "border-border bg-background hover:border-primary/40",
-                  ].join(" ")}
-                >
-                  <span className="text-sm font-semibold">{sz.label}</span>
-                  <span className="text-[10px] text-muted-foreground leading-tight">{sz.hint}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Shape</p>
             <div className="grid grid-cols-6 gap-2">
@@ -388,7 +364,7 @@ function CreatePage() {
         <div className="rounded-3xl bg-card p-6 shadow-soft border border-border/60">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live preview</p>
           <div className="mt-4 flex items-center justify-center min-h-[280px]">
-            <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={textLayers} whiteBorder={whiteBorder} size={240} />
+            <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
           </div>
           <p className="mt-3 text-center text-xs text-muted-foreground">{activeContainer?.emoji} {activeContainer?.label ?? "Bottle"} · {activeShape?.label ?? "Label"} label</p>
           <Button asChild disabled={!imageUrl} size="lg" className="w-full mt-6 rounded-full">

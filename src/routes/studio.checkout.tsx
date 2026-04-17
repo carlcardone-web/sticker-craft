@@ -33,7 +33,7 @@ function priceFor(qty: number, sizeMult: number) {
 function CheckoutPage() {
   const s = useStudio();
   const [qty, setQty] = useState(100);
-  const [sizeId, setSizeId] = useState<string>(s.size);
+  const [sizeId, setSizeId] = useState<string>("3in");
   const [downloaded, setDownloaded] = useState(false);
   const size = SIZES.find((x) => x.id === sizeId) ?? SIZES[1];
   const price = priceFor(qty, size.mult);
@@ -51,7 +51,7 @@ function CheckoutPage() {
   return (
     <div className="grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12">
       <section className="rounded-3xl bg-card p-8 shadow-soft border border-border/60 flex flex-col items-center justify-center">
-        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} size={300} />
+        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} container={s.container} volume={s.volume} size={300} />
         <p className="mt-6 text-sm text-muted-foreground">Your sticker is ready.</p>
       </section>
 
