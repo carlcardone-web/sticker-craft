@@ -12,12 +12,18 @@ type Body = {
 };
 
 const STYLE_HINTS: Record<string, string> = {
-  watercolor: "soft watercolor illustration with gentle washes",
-  lineart: "clean minimal line-art illustration",
-  vintage: "vintage label illustration with subtle texture",
-  flat: "modern flat vector illustration with bold shapes",
-  photographic: "photorealistic illustration with soft lighting",
-  cartoon: "playful cartoon illustration with bold outlines",
+  watercolor:
+    "Painted in soft watercolor — translucent layered washes, visible cold-press paper texture, gentle pigment bleeds at edges, no hard outlines, muted earthy palette of ochres, sage and dusty blues",
+  lineart:
+    "Fine clean line-art illustration — single-weight black ink outlines on light ground, botanical-illustration precision, minimal flat fills, delicate cross-hatching for shading, restrained monochrome palette",
+  vintage:
+    "Vintage engraved label illustration — etched linework with fine cross-hatching, aged sepia and deep jewel tones, ornamental scrollwork borders, 19th-century apothecary and wine-label aesthetic, subtle paper texture",
+  flat:
+    "Modern flat vector illustration — solid fills with no gradients, clean geometric shapes, bold colour blocking, confident silhouettes, Bauhaus-inspired simplicity, vibrant limited palette of three to five hues",
+  photographic:
+    "Photorealistic painted illustration — soft directional lighting, rich tonal depth, subtle film grain, naturalistic colour palette, painterly brushwork that reads as photographic from a distance, cinematic mood",
+  cartoon:
+    "Playful cartoon illustration — bold black outlines, expressive exaggerated shapes, cel-shaded flat fills with one shadow tone, bright saturated palette, friendly character-driven energy, comic-book finish",
 };
 
 const SHAPE_HINTS: Record<string, string> = {
@@ -26,16 +32,31 @@ const SHAPE_HINTS: Record<string, string> = {
   rectangle: "Compose for a horizontal RECTANGULAR sticker — subject fills the rectangular frame edge-to-edge",
   rounded: "Compose for a ROUNDED-SQUARE sticker — subject fills the rounded frame edge-to-edge",
   oval: "Compose for an OVAL sticker — subject fills the oval frame edge-to-edge",
-  diecut: "Compose for a DIE-CUT contour sticker — subject silhouette defines the edge, no background",
+  diecut: "Compose for a DIE-CUT contour sticker — subject silhouette defines the edge, fully painted interior",
 };
 
 const CONTAINER_HINTS: Record<string, string> = {
-  wine: "Designed as a wine bottle label — elegant, refined proportions suited to a curved bottle",
-  beer: "Designed as a beer bottle label — bold, characterful, readable on a curved brown or green bottle",
-  champagne: "Designed as a champagne bottle label — celebratory, premium feel with refined detailing",
-  spirits: "Designed as a spirits bottle label (whiskey, gin, vodka) — premium, distinctive, high-contrast",
-  can: "Designed to wrap a beverage can — bold, punchy, readable at a glance on a cylindrical can",
-  growler: "Designed as a growler label — craft beverage feel, bold and artisanal on a large vessel",
+  wine:
+    "Label artwork for a tall narrow Bordeaux/Burgundy wine bottle — central motif with ornamental framing, cream or off-white background typical of premium wine labels, refined classical composition",
+  beer:
+    "Label artwork for a beer bottle — bold characterful design, high-contrast colour blocking that reads clearly on curved brown or green glass, craft-brewery energy, confident central illustration",
+  champagne:
+    "Label artwork for a champagne bottle — celebratory premium feel, gold, cream and black palette, refined neck-label proportions, ornamental detailing, foil-stamp aesthetic",
+  spirits:
+    "Label artwork for a premium spirits bottle (whiskey, gin, vodka) — distinctive high-contrast composition, deep blacks with metallic accents, heritage distillery aesthetic, strong central emblem",
+  can:
+    "Label artwork that wraps a cylindrical beverage can — bold high-contrast graphics that read at a glance on a curved surface, no fine detail (it disappears on curves), punchy saturated palette",
+  growler:
+    "Label artwork for a growler — artisanal craft-beverage feel, bold and readable on a large vessel, hand-crafted illustration energy, confident typographic-style composition without actual letters",
+};
+
+const ASPECT_HINTS: Record<string, string> = {
+  wine: "portrait orientation, taller than wide, label proportions roughly 2:3",
+  beer: "landscape-leaning, slightly wider than tall, label proportions roughly 3:2",
+  champagne: "near-square portrait label proportions roughly 1:1.2",
+  spirits: "portrait, tall and narrow, label proportions roughly 2:3",
+  can: "wide panoramic format that wraps a cylinder, label proportions roughly 3:1",
+  growler: "landscape, wide and short, label proportions roughly 4:2",
 };
 
 const SIZE_HINTS: Record<string, string> = {
@@ -56,27 +77,45 @@ function buildPrompt(
   const style = stylePreset ? STYLE_HINTS[stylePreset] ?? "" : "";
   const shapeHint = shape ? SHAPE_HINTS[shape] ?? "" : "";
   const containerHint = container ? CONTAINER_HINTS[container] ?? "" : "";
+  const aspectHint = container ? ASPECT_HINTS[container] ?? "" : "";
   const sizeHint = size ? SIZE_HINTS[size] ?? "" : "";
   const shapeWord = shape ?? "frame";
+
+  const strictRules =
+    "STRICT RULES: pure illustration only. No text, no words, no letters, no numbers, no watermark, no logo, no signature, no UI elements. NO transparent background, NO empty background, NO negative space, NO white padding";
+
+  const containerCombined = [containerHint, aspectHint].filter(Boolean).join(" — ");
+
+  const conflictNote =
+    container && shape
+      ? `This artwork will be applied as a ${container} label cut to a ${shape} shape. Prioritise the ${shape} frame fill, but reflect the ${container} label aesthetic in colour, motif, and mood.`
+      : "";
 
   let refNote = "";
   if (refs.length === 1) {
     const role = (refs[0].role || "reference").toLowerCase();
-    refNote = `Use the attached image as the ${role} reference. Reinterpret it as an illustration — do not copy the photo verbatim.`;
+    refNote = `Reference image: extract only the ${role} (e.g. colour palette, subject shape, brushwork style) from this image — do not copy the photo literally. Apply it to the sticker artwork.`;
   } else if (refs.length > 1) {
     const roleList = refs
       .map((r, i) => `image ${i + 1} = ${(r.role || "reference").toLowerCase()}`)
       .join(", ");
-    refNote = `You are given ${refs.length} reference images, each with a specific role: ${roleList}. Combine them into a single cohesive sticker, drawing each aspect from its assigned image. Reinterpret as an illustration — do not copy any photo verbatim.`;
+    refNote = `You are given ${refs.length} reference images, each with a specific role: ${roleList}. From each image extract only its assigned aspect (e.g. colour palette, subject shape, brushwork style) — do not copy any photo literally. Combine them into one cohesive sticker.`;
   }
+
+  const fillRule = `Subject fills the entire ${shapeWord} frame edge-to-edge with solid fully-painted imagery.`;
+  const renderClause = `Render as a print-quality illustration with crisp edges. The artwork must completely fill the ${shapeWord} frame with solid, fully-painted imagery — every pixel inside the frame is part of the illustration. No transparent areas.`;
+
   return [
+    strictRules,
     prompt,
     style,
     shapeHint,
-    containerHint,
+    containerCombined,
     sizeHint,
+    conflictNote,
     refNote,
-    `Subject fills the entire ${shapeWord} frame edge-to-edge. No empty background, no padding, no watermark, no signature, no text, no typography.`,
+    fillRule,
+    renderClause,
   ]
     .filter(Boolean)
     .join(". ");
