@@ -8,7 +8,7 @@ import { STYLE_PRESETS, useStudio, type Provider, type Quality } from "@/lib/stu
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { generateSticker } from "@/server/generate-sticker";
 import { generateStickerReplicate } from "@/server/generate-sticker-replicate";
-import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert, Zap, Gem, KeyRound } from "lucide-react";
+import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert, Zap, Gem } from "lucide-react";
 
 const BLOCKLIST = [
   "disney", "marvel", "pokemon", "mickey", "elsa", "spider-man", "spiderman",
@@ -46,7 +46,6 @@ function CreatePage() {
   } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [replicateUnlocked, setReplicateUnlocked] = useState(false);
 
   function moderate(text: string): string | null {
     const lower = text.toLowerCase();
@@ -95,23 +94,13 @@ function CreatePage() {
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (!replicateUnlocked) {
-                toast.message("Connect Replicate to use Flux", {
-                  description: "Add your Replicate API token, then switch engines.",
-                });
-                return;
-              }
-              setProvider("replicate");
-            }}
+            onClick={() => setProvider("replicate")}
             className={[
-              "px-3 py-1.5 rounded-full text-xs font-medium transition-all inline-flex items-center gap-1.5",
+              "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
               provider === "replicate" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
-              !replicateUnlocked ? "opacity-60" : "",
             ].join(" ")}
           >
             Replicate Flux
-            {!replicateUnlocked && <KeyRound className="h-3 w-3" />}
           </button>
         </div>
 
@@ -132,21 +121,6 @@ function CreatePage() {
           ))}
         </div>
 
-        {!replicateUnlocked && (
-          <button
-            type="button"
-            onClick={() => {
-              toast.info("Add your Replicate API token", {
-                description: "Get one at replicate.com/account/api-tokens, then ask me to connect it.",
-                duration: 6000,
-              });
-              setReplicateUnlocked(true);
-            }}
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
-          >
-            Connect Replicate
-          </button>
-        )}
       </div>
     );
   }
