@@ -86,6 +86,23 @@ function buildPrompt(
           refNote = `You are given ${refs.length} reference images, each with a specific role: ${roleList}. From each image extract only its assigned aspect (e.g. colour palette, subject shape, brushwork style) — do not copy any photo literally. Combine them into one cohesive sticker.`;
     }
 
+    // Resolve @mentions in the user prompt against reference roles
+    const slug = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    const mentionRe = /@([a-z0-9-]+)/gi;
+    const mentioned = new Set<string>();
+    let m: RegExpExecArray | null;
+    while ((m = mentionRe.exec(prompt)) !== null) mentioned.add(m[1].toLowerCase());
+    const mentionDirectives: string[] = [];
+    mentioned.forEach((token) => {
+      const idx = refs.findIndex((r) => slug(r.role || "") === token);
+      if (idx >= 0) {
+        mentionDirectives.push(
+          `Where the prompt says \`@${token}\`, use reference image ${idx + 1} (role: ${refs[idx].role}) as the literal ${refs[idx].role} of the sticker — bind that aspect of the artwork directly to that image.`
+        );
+      }
+    });
+    const mentionNote = mentionDirectives.join(" ");
+
     const fillRule = `Subject fills the entire ${shapeWord} frame edge-to-edge with solid fully-painted imagery.`;
     const renderClause = `Render as a print-quality illustration with crisp edges. The artwork must completely fill the ${shapeWord} frame with solid, fully-painted imagery — every pixel inside the frame is part of the illustration. No transparent areas.`;
 
