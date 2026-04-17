@@ -13,8 +13,8 @@ import {
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { generateSticker } from "@/server/generate-sticker";
 import {
-  Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert,
-  ImagePlus, X, Circle, Square, RectangleHorizontal, Squircle,
+  Sparkles, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert,
+  ImagePlus, X, Circle, Square, RectangleHorizontal, Squircle, Pencil,
 } from "lucide-react";
 
 const BLOCKLIST = [
@@ -103,12 +103,6 @@ function CreatePage() {
     }
   }
 
-  function onUpload(file: File) {
-    const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(file);
-  }
-
   function onReferenceUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
     const remaining = MAX_REFS - referenceImages.length;
@@ -186,9 +180,6 @@ function CreatePage() {
           <TabsList className="bg-muted/60 p-1 rounded-full h-auto">
             <TabsTrigger value="describe" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Sparkles className="h-4 w-4 mr-1.5" /> Describe it
-            </TabsTrigger>
-            <TabsTrigger value="upload" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Upload className="h-4 w-4 mr-1.5" /> Upload & style
             </TabsTrigger>
             <TabsTrigger value="templates" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <LayoutGrid className="h-4 w-4 mr-1.5" /> Templates
@@ -314,31 +305,6 @@ function CreatePage() {
               )}
             </div>
           </TabsContent>
-
-          <TabsContent value="upload" className="mt-6 space-y-5">
-            <label className="block border-2 border-dashed border-border rounded-2xl p-10 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])}
-              />
-              <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-              <p className="mt-2 font-medium">Drop a photo or click to upload</p>
-              <p className="text-sm text-muted-foreground">PNG or JPG, up to 10MB</p>
-            </label>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Style transfer</p>
-              <div className="flex flex-wrap gap-2">
-                {STYLE_PRESETS.map((s) => (
-                  <button key={s.id} onClick={() => setStylePreset(s.id)} className={["px-3.5 py-1.5 rounded-full text-sm", stylePreset === s.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"].join(" ")}>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
           <TabsContent value="templates" className="mt-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {TEMPLATES.map((t) => (
@@ -364,7 +330,23 @@ function CreatePage() {
         <div className="rounded-3xl bg-card p-6 shadow-soft border border-border/60">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live preview</p>
           <div className="mt-4 flex items-center justify-center min-h-[280px]">
-            <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
+            {imageUrl ? (
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/studio/customize" })}
+                className="group relative rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                aria-label="Edit sticker"
+              >
+                <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
+                <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-foreground/0 group-hover:bg-foreground/40 transition-colors">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm">
+                    <Pencil className="h-3.5 w-3.5" /> Click to edit
+                  </span>
+                </span>
+              </button>
+            ) : (
+              <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
+            )}
           </div>
           <p className="mt-3 text-center text-xs text-muted-foreground">{activeContainer?.emoji} {activeContainer?.label ?? "Bottle"} · {activeShape?.label ?? "Label"} label</p>
           <Button asChild disabled={!imageUrl} size="lg" className="w-full mt-6 rounded-full">

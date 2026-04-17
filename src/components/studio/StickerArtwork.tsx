@@ -50,8 +50,11 @@ export function StickerArtwork({
     className = "",
 }: Props) {
     const dims = getLabelDimensions(container, volume);
-    // Aspect ratio: real label W/H if available, else shape default
-    const aspect = dims ? dims.w / dims.h : shapeAspectFallback(shape);
+    // Circle: force a true 1:1 square frame so diameter is equal across every point.
+    // Other shapes use the real label aspect ratio when available.
+    const aspect = shape === "circle"
+      ? 1
+      : dims ? dims.w / dims.h : shapeAspectFallback(shape);
 
     // Fit longest edge to `size`
     const width = aspect >= 1 ? size : Math.round(size * aspect);
