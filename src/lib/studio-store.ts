@@ -22,7 +22,6 @@ export type StudioState = {
     imageUrl: string | null;
     // Step 2
     shape: StickerShape;
-    size: string;
     textLayers: TextLayer[];
     whiteBorder: boolean;
 
@@ -32,7 +31,6 @@ export type StudioState = {
     setStylePreset: (v: string | null) => void;
     setImage: (url: string | null) => void;
     setShape: (s: StickerShape) => void;
-    setSize: (v: string) => void;
     addTextLayer: () => void;
     updateTextLayer: (id: string, patch: Partial<TextLayer>) => void;
     removeTextLayer: (id: string) => void;
@@ -47,7 +45,6 @@ const initial = {
     stylePreset: null as string | null,
     imageUrl: null as string | null,
     shape: "rectangle" as StickerShape,
-    size: "medium",
     textLayers: [] as TextLayer[],
     whiteBorder: true,
 };
@@ -60,7 +57,6 @@ export const useStudio = create<StudioState>((set) => ({
     setStylePreset: (v) => set({ stylePreset: v }),
     setImage: (url) => set({ imageUrl: url }),
     setShape: (s) => set({ shape: s }),
-    setSize: (v) => set({ size: v }),
     addTextLayer: () =>
         set((s) => {
             if (s.textLayers.length >= 2) return s;
@@ -112,13 +108,6 @@ export const SHAPE_CHOICES: { id: StickerShape; label: string; description: stri
   { id: "rounded",   label: "Rounded",  description: "Soft rounded corners" },
 ];
 
-export const SIZE_CHOICES = [
-  { id: "small",  label: "Small",  hint: "2 in" },
-  { id: "medium", label: "Medium", hint: "3 in" },
-  { id: "large",  label: "Large",  hint: "4 in" },
-  { id: "xl",     label: "XL",     hint: "5 in" },
-] as const;
-
 export const STYLE_PRESETS = [
   { id: "fine-wine",       label: "Fine Wine",       description: "Botanical engraving — classical, refined" },
   { id: "craft-beer",      label: "Craft Beer",      description: "Bold illustrative — punchy, characterful" },
@@ -144,3 +133,61 @@ export const STEPS = [
   { id: 4, slug: "preview",   label: "Preview",   path: "/studio/preview" },
   { id: 5, slug: "checkout",  label: "Download",  path: "/studio/checkout" },
 ] as const;
+
+/**
+ * Real-world label dimensions in centimetres, derived from the midpoint of
+ * typical commercial label sizing for each container × volume combination.
+ * This is the single source of truth used by both the live preview frame
+ * (aspect ratio) and the AI generation prompt (composition target).
+ */
+export type LabelDims = {
+  w: number; // cm
+  h: number; // cm
+  kind: "front" | "wrap";
+};
+
+export const LABEL_DIMENSIONS: Record<string, Record<string, LabelDims>> = {
+  wine: {
+    "375ml": { w: 7,  h: 9,  kind: "front" },
+    "500ml": { w: 8,  h: 10, kind: "front" },
+    "750ml": { w: 9,  h: 11, kind: "front" },
+    "1.5L":  { w: 11, h: 13.5, kind: "front" },
+  },
+  champagne: {
+    "200ml": { w: 5.5, h: 8,    kind: "front" },
+    "375ml": { w: 7,   h: 9,    kind: "front" },
+    "750ml": { w: 10.5, h: 13.5, kind: "front" },
+    "1.5L":  { w: 13.5, h: 16.5, kind: "front" },
+  },
+  beer: {
+    "330ml": { w: 7.5, h: 9,    kind: "front" },
+    "500ml": { w: 9,   h: 11,   kind: "front" },
+    "660ml": { w: 10,  h: 12.5, kind: "front" },
+  },
+  spirits: {
+    "200ml": { w: 5.5, h: 7,    kind: "front" },
+    "500ml": { w: 8,   h: 10.5, kind: "front" },
+    "700ml": { w: 9,   h: 11.5, kind: "front" },
+    "1L":    { w: 10,  h: 13.5, kind: "front" },
+  },
+  can: {
+    "250ml": { w: 17.75, h: 9.5,  kind: "wrap" },
+    "330ml": { w: 21,    h: 11.5, kind: "wrap" },
+    "440ml": { w: 22.75, h: 12.75, kind: "wrap" },
+    "500ml": { w: 24,    h: 14,   kind: "wrap" },
+  },
+  growler: {
+    "1L":    { w: 10, h: 11.5, kind: "front" },
+    "2L":    { w: 12.5, h: 15, kind: "front" },
+    "32oz":  { w: 10, h: 12.5, kind: "front" },
+    "64oz":  { w: 12.5, h: 16, kind: "front" },
+  },
+};
+
+export function getLabelDimensions(
+  container?: string | null,
+  volume?: string | null,
+): LabelDims | null {
+  if (!container || !volume) return null;
+  return LABEL_DIMENSIONS[container]?.[volume] ?? null;
+}
