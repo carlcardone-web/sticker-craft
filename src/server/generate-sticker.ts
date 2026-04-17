@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 type Body = {
   prompt: string;
   stylePreset?: string | null;
+  referenceImage?: string | null; // data URL or https URL
 };
 
 const STYLE_HINTS: Record<string, string> = {
@@ -14,11 +15,15 @@ const STYLE_HINTS: Record<string, string> = {
   cartoon: "playful cartoon illustration with bold outlines",
 };
 
-function buildPrompt(prompt: string, stylePreset?: string | null) {
+function buildPrompt(prompt: string, stylePreset?: string | null, hasReference?: boolean) {
   const style = stylePreset ? STYLE_HINTS[stylePreset] ?? "" : "";
+  const refNote = hasReference
+    ? "Use the attached image as a visual reference for the subject (likeness, pose, key features). Reinterpret it as an illustration — do not copy the photo verbatim."
+    : "";
   return [
     prompt,
     style,
+    refNote,
     "Designed as a die-cut sticker: subject centered, clean composition, vibrant but tasteful colors, on a transparent or solid white background, no text or typography, no watermark.",
   ]
     .filter(Boolean)
@@ -31,10 +36,14 @@ export const generateSticker = createServerFn({ method: "POST" })
       throw new Error("Prompt is required");
     }
     if (input.prompt.length > 1000) throw new Error("Prompt too long");
+    const ref = input.referenceImage ?? null;
+    if (ref && typeof ref !== "string") throw new Error("Invalid reference image");
+    if (ref && ref.length > 12_000_000) throw new Error("Reference image too large");
     return {
       prompt: input.prompt,
       stylePreset: input.stylePreset ?? null,
-    } as Required<Body>;
+      referenceImage: ref,
+    };
   })
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
@@ -42,7 +51,15 @@ export const generateSticker = createServerFn({ method: "POST" })
       throw new Error("AI is not configured. Please contact support.");
     }
 
-    const fullPrompt = buildPrompt(data.prompt, data.stylePreset);
+    const hasRef = !!data.referenceImage;
+    const fullPrompt = buildPrompt(data.prompt, data.stylePreset, hasRef);
+
+    const userContent = hasRef
+      ? [
+          { type: "text", text: fullPrompt },
+          { type: "image_url", image_url: { url: data.referenceImage as string } },
+        ]
+      : fullPrompt;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -52,7 +69,7 @@ export const generateSticker = createServerFn({ method: "POST" })
       },
       body: JSON.stringify({
         model: "google/gemini-3-pro-image-preview",
-        messages: [{ role: "user", content: fullPrompt }],
+        messages: [{ role: "user", content: userContent }],
         modalities: ["image", "text"],
       }),
     });
