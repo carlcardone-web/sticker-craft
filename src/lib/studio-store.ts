@@ -116,15 +116,3 @@ export const STEPS = [
   { id: 3, slug: "preview",   label: "Preview",  path: "/studio/preview" },
   { id: 4, slug: "checkout",  label: "Download", path: "/studio/checkout" },
   ] as const;
-]
-]
-]
-]
-]
-          }))
-                  }
-          })
-}))
-}
-}
-}
