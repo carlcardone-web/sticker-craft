@@ -4,60 +4,50 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { FONT_CHOICES, useStudio, type StickerShape } from "@/lib/studio-store";
+import {
+  FONT_CHOICES,
+  SIZE_CHOICES,
+  CONTAINER_CHOICES,
+  useStudio,
+} from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
-import { ArrowLeft, ArrowRight, Plus, Trash2, Circle, Square, RectangleHorizontal, Squircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
 
 export const Route = createFileRoute("/studio/customize")({
   head: () => ({
     meta: [
       { title: "Customize — Sticker Studio" },
-      { name: "description", content: "Pick a shape and add your text." },
+      { name: "description", content: "Add text and finish your sticker." },
     ],
   }),
   component: CustomizePage,
 });
 
-const SHAPES: { id: StickerShape; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "circle", label: "Circle", Icon: Circle },
-  { id: "square", label: "Square", Icon: Square },
-  { id: "rectangle", label: "Rectangle", Icon: RectangleHorizontal },
-  { id: "rounded", label: "Rounded", Icon: Squircle },
-  { id: "oval", label: "Oval", Icon: Circle },
-  { id: "diecut", label: "Die-cut", Icon: Squircle },
-];
-
 function CustomizePage() {
   const s = useStudio();
+
+  const containerLabel = CONTAINER_CHOICES.find((c) => c.id === s.container)?.label ?? s.container;
+  const sizeLabel = SIZE_CHOICES.find((sz) => sz.id === s.size)?.label ?? s.size;
+  const shapeLabel = s.shape.charAt(0).toUpperCase() + s.shape.slice(1);
 
   return (
     <div className="grid lg:grid-cols-[420px_1fr] gap-8 lg:gap-12">
       <aside className="space-y-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Make it yours</h1>
-          <p className="mt-1 text-muted-foreground text-sm">Shape and text — fully editable.</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Add the finishing touches</h1>
+          <p className="mt-1 text-muted-foreground text-sm">Text and border — fully editable.</p>
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl bg-muted/50 border border-border/60 px-4 py-3 text-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-muted-foreground shrink-0">For:</span>
+            <span className="font-medium truncate">{containerLabel} · {sizeLabel} · {shapeLabel}</span>
+          </div>
+          <Link to="/studio/create" className="text-primary hover:underline shrink-0 ml-2">Change</Link>
         </div>
 
         <section>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Shape</p>
-          <div className="grid grid-cols-3 gap-2">
-            {SHAPES.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                onClick={() => s.setShape(id)}
-                className={[
-                  "flex flex-col items-center gap-1.5 p-3 rounded-2xl border transition-all",
-                  s.shape === id
-                    ? "border-primary bg-primary-soft shadow-sm"
-                    : "border-border bg-card hover:border-primary/40",
-                ].join(" ")}
-              >
-                <Icon className="h-5 w-5" />
-                <span className="text-xs font-medium">{label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="mt-4 flex items-center justify-between rounded-2xl bg-card border border-border/60 p-3">
+          <div className="flex items-center justify-between rounded-2xl bg-card border border-border/60 p-3">
             <Label htmlFor="border" className="text-sm">White die-cut border</Label>
             <Switch id="border" checked={s.whiteBorder} onCheckedChange={s.setWhiteBorder} />
           </div>

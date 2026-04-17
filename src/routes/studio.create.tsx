@@ -4,10 +4,19 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { STYLE_PRESETS, useStudio } from "@/lib/studio-store";
+import {
+  STYLE_PRESETS,
+  SIZE_CHOICES,
+  CONTAINER_CHOICES,
+  useStudio,
+  type StickerShape,
+} from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { generateSticker } from "@/server/generate-sticker";
-import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert, ImagePlus, X } from "lucide-react";
+import {
+  Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert,
+  ImagePlus, X, Circle, Square, RectangleHorizontal, Squircle,
+} from "lucide-react";
 
 const BLOCKLIST = [
   "disney", "marvel", "pokemon", "mickey", "elsa", "spider-man", "spiderman",
@@ -27,6 +36,15 @@ const TEMPLATES = [
   { occasion: "Corporate", title: "Crisp monogram", color: "from-[oklch(0.92_0.01_250)] to-[oklch(0.88_0.02_240)]" },
 ];
 
+const SHAPES: { id: StickerShape; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { id: "circle", label: "Circle", Icon: Circle },
+  { id: "square", label: "Square", Icon: Square },
+  { id: "rectangle", label: "Rectangle", Icon: RectangleHorizontal },
+  { id: "rounded", label: "Rounded", Icon: Squircle },
+  { id: "oval", label: "Oval", Icon: Circle },
+  { id: "diecut", label: "Die-cut", Icon: Squircle },
+];
+
 export const Route = createFileRoute("/studio/create")({
   head: () => ({
     meta: [
@@ -41,7 +59,10 @@ function CreatePage() {
   const {
     prompt, stylePreset, imageUrl,
     setPrompt, setStylePreset, setImage,
-    shape, textLayers, whiteBorder,
+    shape, setShape,
+    size, setSize,
+    container, setContainer,
+    textLayers, whiteBorder,
   } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +85,7 @@ function CreatePage() {
     setLoading(true);
     try {
       const { imageUrl: url } = await generateSticker({
-        data: { prompt, stylePreset, referenceImages },
+        data: { prompt, stylePreset, referenceImages, container, shape, size },
       });
       setImage(url);
     } catch (e) {
@@ -119,7 +140,72 @@ function CreatePage() {
     <div className="grid lg:grid-cols-[1fr_360px] gap-8 lg:gap-12">
       <section>
         <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Create your sticker</h1>
-        <p className="mt-2 text-muted-foreground">Three ways to start. Pick what feels right.</p>
+        <p className="mt-2 text-muted-foreground">Pick where it goes, then design it.</p>
+
+        {/* Container / Size / Shape — chosen first so the AI plans for them */}
+        <div className="mt-8 space-y-5 rounded-3xl border border-border/60 bg-card/50 p-5">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Where will it go?</p>
+            <div className="flex flex-wrap gap-2">
+              {CONTAINER_CHOICES.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setContainer(c.id)}
+                  className={[
+                    "px-3.5 py-1.5 rounded-full text-sm transition-all",
+                    container === c.id
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  ].join(" ")}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Size</p>
+            <div className="grid grid-cols-4 gap-2">
+              {SIZE_CHOICES.map((sz) => (
+                <button
+                  key={sz.id}
+                  onClick={() => setSize(sz.id)}
+                  className={[
+                    "flex flex-col items-center gap-0.5 py-2.5 rounded-xl border transition-all",
+                    size === sz.id
+                      ? "border-primary bg-primary-soft shadow-sm"
+                      : "border-border bg-background hover:border-primary/40",
+                  ].join(" ")}
+                >
+                  <span className="text-sm font-semibold">{sz.label}</span>
+                  <span className="text-[10px] text-muted-foreground leading-tight">{sz.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Shape</p>
+            <div className="grid grid-cols-6 gap-2">
+              {SHAPES.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setShape(id)}
+                  className={[
+                    "flex flex-col items-center gap-1 p-2 rounded-xl border transition-all",
+                    shape === id
+                      ? "border-primary bg-primary-soft shadow-sm"
+                      : "border-border bg-background hover:border-primary/40",
+                  ].join(" ")}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="text-[10px] font-medium leading-tight">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
 
         <Tabs defaultValue="describe" className="mt-8">
           <TabsList className="bg-muted/60 p-1 rounded-full h-auto">

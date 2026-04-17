@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+export type StickerSize = "2in" | "3in" | "4in" | "5in";
+
 export type StickerShape =
   | "circle"
   | "square"
@@ -25,15 +27,16 @@ export type StudioState = {
   imageUrl: string | null; // generated/uploaded artwork
   // Step 2
   shape: StickerShape;
+  size: StickerSize;
+  container: string;
   textLayers: TextLayer[];
   whiteBorder: boolean;
-  // Step 3
-  container: string;
 
   setPrompt: (v: string) => void;
   setStylePreset: (v: string | null) => void;
   setImage: (url: string | null) => void;
   setShape: (s: StickerShape) => void;
+  setSize: (s: StickerSize) => void;
   addTextLayer: () => void;
   updateTextLayer: (id: string, patch: Partial<TextLayer>) => void;
   removeTextLayer: (id: string) => void;
@@ -47,9 +50,10 @@ const initial = {
   stylePreset: null as string | null,
   imageUrl: null as string | null,
   shape: "circle" as StickerShape,
+  size: "3in" as StickerSize,
+  container: "wine",
   textLayers: [] as TextLayer[],
   whiteBorder: true,
-  container: "wine",
 };
 
 export const useStudio = create<StudioState>((set) => ({
@@ -58,6 +62,7 @@ export const useStudio = create<StudioState>((set) => ({
   setStylePreset: (v) => set({ stylePreset: v }),
   setImage: (url) => set({ imageUrl: url }),
   setShape: (s) => set({ shape: s }),
+  setSize: (s) => set({ size: s }),
   addTextLayer: () =>
     set((s) => {
       if (s.textLayers.length >= 2) return s;
@@ -82,6 +87,22 @@ export const useStudio = create<StudioState>((set) => ({
   setContainer: (c) => set({ container: c }),
   reset: () => set({ ...initial }),
 }));
+
+export const SIZE_CHOICES: { id: StickerSize; label: string; hint: string }[] = [
+  { id: "2in", label: '2"', hint: "cans, phones" },
+  { id: "3in", label: '3"', hint: "bottles, mugs" },
+  { id: "4in", label: '4"', hint: "laptops, notebooks" },
+  { id: "5in", label: '5"', hint: "posters, big surfaces" },
+];
+
+export const CONTAINER_CHOICES = [
+  { id: "wine", label: "Wine bottle" },
+  { id: "can", label: "Can" },
+  { id: "laptop", label: "Laptop" },
+  { id: "waterbottle", label: "Water bottle" },
+  { id: "notebook", label: "Notebook" },
+  { id: "other", label: "Other" },
+];
 
 export const STYLE_PRESETS = [
   { id: "watercolor", label: "Watercolor" },
