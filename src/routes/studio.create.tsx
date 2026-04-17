@@ -64,6 +64,8 @@ function CreatePage() {
     container, setContainer,
     textLayers, whiteBorder,
   } = useStudio();
+  const activeContainer = CONTAINER_CHOICES.find((c) => c.id === container);
+  const activeShape = SHAPES.find((s) => s.id === shape);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [referenceImages, setReferenceImages] = useState<{ url: string; role: string }[]>([]);

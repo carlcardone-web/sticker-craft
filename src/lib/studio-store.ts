@@ -93,8 +93,17 @@ export const SHAPE_CHOICES: { id: StickerShape; label: string; description: stri
   { id: "rectangle", label: "Rectangle", description: "Classic front label" },
   { id: "oval",      label: "Oval",       description: "Elegant & traditional" },
   { id: "circle",    label: "Circle",     description: "Neck seal / cap" },
-  { id: "diecut",    label: "Die-cut",    description: "Custom contour" },
+  { id: "diecut", label: "Die-cut", description: "Custom contour" },
+  { id: "square", label: "Square", description: "Modern square label" },
+  { id: "rounded", label: "Rounded", description: "Soft rounded corners" },
   ];
+
+export const SIZE_CHOICES = [
+  { id: "small",  label: "Small",  hint: "2 in" },
+  { id: "medium", label: "Medium", hint: "3 in" },
+  { id: "large",  label: "Large",  hint: "4 in" },
+  { id: "xl",     label: "XL",     hint: "5 in" },
+  ] as const;
 
 export const STYLE_PRESETS = [
   { id: "fine-wine",       label: "Fine Wine",       description: "Botanical engraving — classical, refined" },

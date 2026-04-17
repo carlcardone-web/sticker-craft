@@ -19,6 +19,12 @@ function shapeStyle(shape: StickerShape): React.CSSProperties {
               return { borderRadius: "50%",  aspectRatio: "1 / 1" };
       case "diecut":
               return { borderRadius: "28px", aspectRatio: "3 / 4" };
+      case "square":
+              return { borderRadius: "8px",  aspectRatio: "1 / 1" };
+      case "rounded":
+              return { borderRadius: "24px", aspectRatio: "1 / 1" };
+      default:
+              return { borderRadius: "12px", aspectRatio: "3 / 4" };
     }
 }
 

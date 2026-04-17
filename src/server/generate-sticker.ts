@@ -8,6 +8,7 @@ type Body = {
     referenceImages?: ReferenceImage[] | null; // up to 3
     container?: string | null;
     shape?: string | null;
+    size?: string | null;
 };
 
 const STYLE_HINTS: Record<string, string> = {
