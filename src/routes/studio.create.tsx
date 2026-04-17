@@ -306,31 +306,7 @@ function CreatePage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="upload" className="mt-6 space-y-5">
-            <label className="block border-2 border-dashed border-border rounded-2xl p-10 text-center cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors">
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && onUpload(e.target.files[0])}
-              />
-              <Upload className="h-6 w-6 mx-auto text-muted-foreground" />
-              <p className="mt-2 font-medium">Drop a photo or click to upload</p>
-              <p className="text-sm text-muted-foreground">PNG or JPG, up to 10MB</p>
-            </label>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Style transfer</p>
-              <div className="flex flex-wrap gap-2">
-                {STYLE_PRESETS.map((s) => (
-                  <button key={s.id} onClick={() => setStylePreset(s.id)} className={["px-3.5 py-1.5 rounded-full text-sm", stylePreset === s.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"].join(" ")}>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
 
-          <TabsContent value="templates" className="mt-6">
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {TEMPLATES.map((t) => (
                 <button
