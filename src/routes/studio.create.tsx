@@ -181,9 +181,6 @@ function CreatePage() {
             <TabsTrigger value="describe" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Sparkles className="h-4 w-4 mr-1.5" /> Describe it
             </TabsTrigger>
-            <TabsTrigger value="upload" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Upload className="h-4 w-4 mr-1.5" /> Upload & style
-            </TabsTrigger>
             <TabsTrigger value="templates" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <LayoutGrid className="h-4 w-4 mr-1.5" /> Templates
             </TabsTrigger>
