@@ -364,7 +364,7 @@ function CreatePage() {
         <div className="rounded-3xl bg-card p-6 shadow-soft border border-border/60">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live preview</p>
           <div className="mt-4 flex items-center justify-center min-h-[280px]">
-            <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={textLayers} whiteBorder={whiteBorder} size={240} />
+            <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
           </div>
           <p className="mt-3 text-center text-xs text-muted-foreground">{activeContainer?.emoji} {activeContainer?.label ?? "Bottle"} · {activeShape?.label ?? "Label"} label</p>
           <Button asChild disabled={!imageUrl} size="lg" className="w-full mt-6 rounded-full">

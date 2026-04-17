@@ -55,6 +55,8 @@ function PreviewPage() {
                 shape={s.shape}
                 textLayers={s.textLayers}
                 whiteBorder={s.whiteBorder}
+                container={s.container}
+                volume={s.volume}
                 size={active.stickerSize}
               />
             </div>
