@@ -1,8 +1,14 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import url("https://rsms.me/inter/inter.css");
 
 @custom-variant dark (&:is(.dark *));
+
+/*
+ * Sticker Studio — soft sage minimalist design system.
+ * Off-white canvas, charcoal ink, single sage accent.
+ */
 
 /*
  * Design system definition.
@@ -62,26 +68,50 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --radius: 0.875rem;
+
+  /* Canvas */
+  --background: oklch(0.985 0.005 95);   /* warm off-white */
+  --foreground: oklch(0.22 0.012 250);   /* charcoal ink */
+
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.22 0.012 250);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
+  --popover-foreground: oklch(0.22 0.012 250);
+
+  /* Sage accent */
+  --primary: oklch(0.62 0.045 155);
+  --primary-foreground: oklch(0.99 0.005 150);
+  --primary-soft: oklch(0.93 0.03 150);
+  --primary-deep: oklch(0.45 0.06 155);
+
+  --secondary: oklch(0.96 0.008 150);
+  --secondary-foreground: oklch(0.3 0.02 250);
+  --muted: oklch(0.96 0.005 100);
+  --muted-foreground: oklch(0.5 0.012 250);
+  --accent: oklch(0.93 0.03 150);
+  --accent-foreground: oklch(0.3 0.04 155);
+
+  --destructive: oklch(0.6 0.18 25);
+  --destructive-foreground: oklch(0.99 0.005 150);
+
+  --border: oklch(0.92 0.008 120);
+  --input: oklch(0.94 0.008 120);
+  --ring: oklch(0.62 0.045 155);
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px oklch(0.22 0.012 250 / 0.04);
+  --shadow-md: 0 8px 24px -8px oklch(0.22 0.012 250 / 0.08), 0 2px 6px oklch(0.22 0.012 250 / 0.04);
+  --shadow-lg: 0 24px 48px -12px oklch(0.22 0.012 250 / 0.12), 0 4px 12px oklch(0.22 0.012 250 / 0.05);
+  --shadow-glow: 0 12px 40px -12px oklch(0.62 0.045 155 / 0.35);
+
+  /* Gradients */
+  --gradient-canvas: radial-gradient(ellipse at top, oklch(0.97 0.015 150 / 0.6), transparent 60%), oklch(0.985 0.005 95);
+  --gradient-sage: linear-gradient(135deg, oklch(0.66 0.05 155), oklch(0.55 0.06 160));
+
+  /* Motion */
+  --ease-soft: cubic-bezier(0.32, 0.72, 0, 1);
+  --transition-base: 240ms var(--ease-soft);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -132,13 +162,56 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "SF Pro Text", sans-serif;
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-deep: var(--primary-deep);
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
   }
 
+  html {
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
-    background-color: var(--color-background);
+    background: var(--gradient-canvas);
     color: var(--color-foreground);
+    min-height: 100vh;
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.02em;
+    font-weight: 600;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: oklch(1 0 0 / 0.7);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+  }
+  .shadow-soft { box-shadow: var(--shadow-md); }
+  .shadow-soft-lg { box-shadow: var(--shadow-lg); }
+  .shadow-glow { box-shadow: var(--shadow-glow); }
+  .bg-gradient-sage { background: var(--gradient-sage); }
+  .animate-float { animation: float 6s ease-in-out infinite; }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .animate-fade-up {
+    animation: fadeUp 500ms var(--ease-soft) both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 }
