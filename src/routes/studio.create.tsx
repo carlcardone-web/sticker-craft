@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { STYLE_PRESETS, useStudio } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
-import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert, Zap, Gem } from "lucide-react";
 
 const BLOCKLIST = [
   "disney", "marvel", "pokemon", "mickey", "elsa", "spider-man", "spiderman",
