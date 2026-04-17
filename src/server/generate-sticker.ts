@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 type Body = {
   prompt: string;
   stylePreset?: string | null;
-  referenceImage?: string | null; // data URL or https URL
+  referenceImages?: string[] | null; // data URLs or https URLs, up to 3
 };
 
 const STYLE_HINTS: Record<string, string> = {
@@ -15,11 +15,15 @@ const STYLE_HINTS: Record<string, string> = {
   cartoon: "playful cartoon illustration with bold outlines",
 };
 
-function buildPrompt(prompt: string, stylePreset?: string | null, hasReference?: boolean) {
+function buildPrompt(prompt: string, stylePreset?: string | null, refCount = 0) {
   const style = stylePreset ? STYLE_HINTS[stylePreset] ?? "" : "";
-  const refNote = hasReference
-    ? "Use the attached image as a visual reference for the subject (likeness, pose, key features). Reinterpret it as an illustration — do not copy the photo verbatim."
-    : "";
+  let refNote = "";
+  if (refCount === 1) {
+    refNote =
+      "Use the attached image as a visual reference for the subject (likeness, pose, key features). Reinterpret it as an illustration — do not copy the photo verbatim.";
+  } else if (refCount > 1) {
+    refNote = `Use the ${refCount} attached images together as visual references. Blend their subjects, colors, and moods into a single cohesive sticker composition. Reinterpret them as an illustration — do not copy any photo verbatim.`;
+  }
   return [
     prompt,
     style,
@@ -36,13 +40,16 @@ export const generateSticker = createServerFn({ method: "POST" })
       throw new Error("Prompt is required");
     }
     if (input.prompt.length > 1000) throw new Error("Prompt too long");
-    const ref = input.referenceImage ?? null;
-    if (ref && typeof ref !== "string") throw new Error("Invalid reference image");
-    if (ref && ref.length > 12_000_000) throw new Error("Reference image too large");
+    const refs = Array.isArray(input.referenceImages)
+      ? input.referenceImages.filter((s) => typeof s === "string" && s.length > 0)
+      : [];
+    if (refs.length > 3) throw new Error("Up to 3 reference images allowed");
+    const totalSize = refs.reduce((n, s) => n + s.length, 0);
+    if (totalSize > 24_000_000) throw new Error("Reference images too large");
     return {
       prompt: input.prompt,
       stylePreset: input.stylePreset ?? null,
-      referenceImage: ref,
+      referenceImages: refs,
     };
   })
   .handler(async ({ data }) => {
@@ -51,15 +58,16 @@ export const generateSticker = createServerFn({ method: "POST" })
       throw new Error("AI is not configured. Please contact support.");
     }
 
-    const hasRef = !!data.referenceImage;
-    const fullPrompt = buildPrompt(data.prompt, data.stylePreset, hasRef);
+    const refs = data.referenceImages;
+    const fullPrompt = buildPrompt(data.prompt, data.stylePreset, refs.length);
 
-    const userContent = hasRef
-      ? [
-          { type: "text", text: fullPrompt },
-          { type: "image_url", image_url: { url: data.referenceImage as string } },
-        ]
-      : fullPrompt;
+    const userContent =
+      refs.length > 0
+        ? [
+            { type: "text", text: fullPrompt },
+            ...refs.map((url) => ({ type: "image_url", image_url: { url } })),
+          ]
+        : fullPrompt;
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
