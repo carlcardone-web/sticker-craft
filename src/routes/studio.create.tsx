@@ -45,6 +45,7 @@ function CreatePage() {
   } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
 
   function moderate(text: string): string | null {
     const lower = text.toLowerCase();
@@ -59,7 +60,9 @@ function CreatePage() {
     if (m) { setError(m); return; }
     setLoading(true);
     try {
-      const { imageUrl: url } = await generateSticker({ data: { prompt, stylePreset } });
+      const { imageUrl: url } = await generateSticker({
+        data: { prompt, stylePreset, referenceImage },
+      });
       setImage(url);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong.";
@@ -73,6 +76,16 @@ function CreatePage() {
   function onUpload(file: File) {
     const reader = new FileReader();
     reader.onload = () => setImage(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function onReferenceUpload(file: File) {
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Reference image must be under 8MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setReferenceImage(reader.result as string);
     reader.readAsDataURL(file);
   }
 
