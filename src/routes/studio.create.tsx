@@ -45,7 +45,9 @@ function CreatePage() {
   } = useStudio();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
+
+  const MAX_REFS = 3;
 
   function moderate(text: string): string | null {
     const lower = text.toLowerCase();
@@ -61,7 +63,7 @@ function CreatePage() {
     setLoading(true);
     try {
       const { imageUrl: url } = await generateSticker({
-        data: { prompt, stylePreset, referenceImage },
+        data: { prompt, stylePreset, referenceImages },
       });
       setImage(url);
     } catch (e) {
@@ -79,14 +81,31 @@ function CreatePage() {
     reader.readAsDataURL(file);
   }
 
-  function onReferenceUpload(file: File) {
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error("Reference image must be under 8MB.");
+  function onReferenceUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const remaining = MAX_REFS - referenceImages.length;
+    if (remaining <= 0) {
+      toast.error(`You can attach up to ${MAX_REFS} reference images.`);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setReferenceImage(reader.result as string);
-    reader.readAsDataURL(file);
+    const picked = Array.from(files).slice(0, remaining);
+    picked.forEach((file) => {
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error(`${file.name} is over 8MB and was skipped.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        setReferenceImages((prev) =>
+          prev.length >= MAX_REFS ? prev : [...prev, reader.result as string]
+        );
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function removeReference(index: number) {
+    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -137,33 +156,44 @@ function CreatePage() {
 
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Reference photo <span className="normal-case tracking-normal text-muted-foreground/70">(optional)</span>
+                Reference photos <span className="normal-case tracking-normal text-muted-foreground/70">(optional, up to {MAX_REFS})</span>
               </p>
-              {referenceImage ? (
-                <div className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-card">
-                  <img src={referenceImage} alt="Reference" className="h-16 w-16 rounded-xl object-cover" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">Reference attached</p>
-                    <p className="text-xs text-muted-foreground">Mention it in your description (e.g. “the person in the photo”).</p>
+              <div className="grid grid-cols-3 gap-3">
+                {referenceImages.map((src, i) => (
+                  <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-border bg-card">
+                    <img src={src} alt={`Reference ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeReference(i)}
+                      className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-background/90 border border-border flex items-center justify-center shadow-sm hover:bg-background"
+                      aria-label="Remove reference"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => setReferenceImage(null)} className="rounded-full">
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <label className="flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => e.target.files?.[0] && onReferenceUpload(e.target.files[0])}
-                  />
-                  <ImagePlus className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">Add a reference photo</p>
-                    <p className="text-xs text-muted-foreground">A friend, pet, place — anything we should draw inspiration from.</p>
-                  </div>
-                </label>
+                ))}
+                {referenceImages.length < MAX_REFS && (
+                  <label className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors text-center px-2">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => { onReferenceUpload(e.target.files); e.target.value = ""; }}
+                    />
+                    <ImagePlus className="h-5 w-5 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground leading-tight">
+                      {referenceImages.length === 0 ? "Add references" : "Add another"}
+                    </span>
+                  </label>
+                )}
+              </div>
+              {referenceImages.length > 0 && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  {referenceImages.length === 1
+                    ? "We'll use this image as visual inspiration."
+                    : `We'll blend these ${referenceImages.length} images into one sticker.`}
+                </p>
               )}
             </div>
             {error && (
