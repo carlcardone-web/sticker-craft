@@ -3,7 +3,6 @@ import { createServerFn } from "@tanstack/react-start";
 type Body = {
   prompt: string;
   stylePreset?: string | null;
-  quality?: "fast" | "high";
 };
 
 const STYLE_HINTS: Record<string, string> = {
@@ -35,7 +34,6 @@ export const generateSticker = createServerFn({ method: "POST" })
     return {
       prompt: input.prompt,
       stylePreset: input.stylePreset ?? null,
-      quality: input.quality === "high" ? "high" : "fast",
     } as Required<Body>;
   })
   .handler(async ({ data }) => {
@@ -43,11 +41,6 @@ export const generateSticker = createServerFn({ method: "POST" })
     if (!apiKey) {
       throw new Error("AI is not configured. Please contact support.");
     }
-
-    const model =
-      data.quality === "high"
-        ? "google/gemini-3-pro-image-preview"
-        : "google/gemini-2.5-flash-image";
 
     const fullPrompt = buildPrompt(data.prompt, data.stylePreset);
 
@@ -58,7 +51,7 @@ export const generateSticker = createServerFn({ method: "POST" })
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model,
+        model: "google/gemini-2.5-flash-image",
         messages: [{ role: "user", content: fullPrompt }],
         modalities: ["image", "text"],
       }),

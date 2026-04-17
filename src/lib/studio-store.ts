@@ -18,16 +18,11 @@ export type TextLayer = {
   y: number;
 };
 
-export type Provider = "lovable" | "replicate";
-export type Quality = "fast" | "high";
-
 export type StudioState = {
   // Step 1
   prompt: string;
   stylePreset: string | null;
   imageUrl: string | null; // generated/uploaded artwork
-  provider: Provider;
-  quality: Quality;
   // Step 2
   shape: StickerShape;
   textLayers: TextLayer[];
@@ -38,8 +33,6 @@ export type StudioState = {
   setPrompt: (v: string) => void;
   setStylePreset: (v: string | null) => void;
   setImage: (url: string | null) => void;
-  setProvider: (p: Provider) => void;
-  setQuality: (q: Quality) => void;
   setShape: (s: StickerShape) => void;
   addTextLayer: () => void;
   updateTextLayer: (id: string, patch: Partial<TextLayer>) => void;
@@ -53,8 +46,6 @@ const initial = {
   prompt: "",
   stylePreset: null as string | null,
   imageUrl: null as string | null,
-  provider: "lovable" as Provider,
-  quality: "fast" as Quality,
   shape: "circle" as StickerShape,
   textLayers: [] as TextLayer[],
   whiteBorder: true,
@@ -66,8 +57,6 @@ export const useStudio = create<StudioState>((set) => ({
   setPrompt: (v) => set({ prompt: v }),
   setStylePreset: (v) => set({ stylePreset: v }),
   setImage: (url) => set({ imageUrl: url }),
-  setProvider: (p) => set({ provider: p }),
-  setQuality: (q) => set({ quality: q }),
   setShape: (s) => set({ shape: s }),
   addTextLayer: () =>
     set((s) => {

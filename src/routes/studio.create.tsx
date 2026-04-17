@@ -4,11 +4,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { STYLE_PRESETS, useStudio, type Provider, type Quality } from "@/lib/studio-store";
+import { STYLE_PRESETS, useStudio } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { generateSticker } from "@/server/generate-sticker";
-import { generateStickerReplicate } from "@/server/generate-sticker-replicate";
-import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert, Zap, Gem } from "lucide-react";
+import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert } from "lucide-react";
 
 const BLOCKLIST = [
   "disney", "marvel", "pokemon", "mickey", "elsa", "spider-man", "spiderman",
@@ -40,8 +39,8 @@ export const Route = createFileRoute("/studio/create")({
 
 function CreatePage() {
   const {
-    prompt, stylePreset, imageUrl, provider, quality,
-    setPrompt, setStylePreset, setImage, setProvider, setQuality,
+    prompt, stylePreset, imageUrl,
+    setPrompt, setStylePreset, setImage,
     shape, textLayers, whiteBorder,
   } = useStudio();
   const [loading, setLoading] = useState(false);
@@ -60,8 +59,7 @@ function CreatePage() {
     if (m) { setError(m); return; }
     setLoading(true);
     try {
-      const fn = provider === "replicate" ? generateStickerReplicate : generateSticker;
-      const { imageUrl: url } = await fn({ data: { prompt, stylePreset, quality } });
+      const { imageUrl: url } = await generateSticker({ data: { prompt, stylePreset } });
       setImage(url);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong.";
@@ -76,53 +74,6 @@ function CreatePage() {
     const reader = new FileReader();
     reader.onload = () => setImage(reader.result as string);
     reader.readAsDataURL(file);
-  }
-
-  function EngineControls() {
-    return (
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="inline-flex rounded-full bg-muted p-1">
-          <button
-            type="button"
-            onClick={() => setProvider("lovable")}
-            className={[
-              "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-              provider === "lovable" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
-            ].join(" ")}
-          >
-            Lovable AI · Free
-          </button>
-          <button
-            type="button"
-            onClick={() => setProvider("replicate")}
-            className={[
-              "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
-              provider === "replicate" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
-            ].join(" ")}
-          >
-            Replicate Flux
-          </button>
-        </div>
-
-        <div className="inline-flex rounded-full bg-muted p-1">
-          {(["fast", "high"] as Quality[]).map((q) => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => setQuality(q)}
-              className={[
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-all inline-flex items-center gap-1",
-                quality === q ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
-              ].join(" ")}
-            >
-              {q === "fast" ? <Zap className="h-3 w-3" /> : <Gem className="h-3 w-3" />}
-              {q === "fast" ? "Fast" : "High quality"}
-            </button>
-          ))}
-        </div>
-
-      </div>
-    );
   }
 
   return (
@@ -170,7 +121,6 @@ function CreatePage() {
                 ))}
               </div>
             </div>
-            <EngineControls />
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
                 <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
@@ -211,12 +161,6 @@ function CreatePage() {
                 ))}
               </div>
             </div>
-            <EngineControls />
-            {provider === "replicate" && (
-              <p className="text-xs text-muted-foreground">
-                Style transfer on uploads uses Lovable AI. Switch engines to apply a style to a photo.
-              </p>
-            )}
           </TabsContent>
 
           <TabsContent value="templates" className="mt-6">
