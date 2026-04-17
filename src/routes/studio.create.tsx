@@ -391,6 +391,7 @@ function CreatePage() {
           <div className="mt-4 flex items-center justify-center min-h-[280px]">
             <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={textLayers} whiteBorder={whiteBorder} size={240} />
           </div>
+          <p className="mt-3 text-center text-xs text-muted-foreground">{activeContainer?.emoji} {activeContainer?.label ?? "Bottle"} · {activeShape?.label ?? "Label"} label</p>p></p>
           <Button asChild disabled={!imageUrl} size="lg" className="w-full mt-6 rounded-full">
             <Link to="/studio/customize">Continue <ArrowRight className="h-4 w-4 ml-1" /></Link>
           </Button>
