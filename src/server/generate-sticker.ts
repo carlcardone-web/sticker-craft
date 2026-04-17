@@ -139,6 +139,7 @@ export const generateSticker = createServerFn({ method: "POST" })
                 referenceImages: refs,
                 container: typeof input.container === "string" ? input.container.slice(0, 40) : null,
                 shape: typeof input.shape === "string" ? input.shape.slice(0, 40) : null,
+                volume: typeof input.volume === "string" ? input.volume.slice(0, 20) : null,
         };
   })
   .handler(async ({ data }) => {
@@ -153,7 +154,8 @@ export const generateSticker = createServerFn({ method: "POST" })
                 data.stylePreset,
                 refs,
                 data.container,
-                data.shape
+                data.shape,
+                data.volume,
               );
 
         const userContent =
