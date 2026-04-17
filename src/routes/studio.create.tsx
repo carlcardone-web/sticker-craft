@@ -13,8 +13,8 @@ import {
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { generateSticker } from "@/server/generate-sticker";
 import {
-  Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert,
-  ImagePlus, X, Circle, Square, RectangleHorizontal, Squircle,
+  Sparkles, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert,
+  ImagePlus, X, Circle, Square, RectangleHorizontal, Squircle, Pencil,
 } from "lucide-react";
 
 const BLOCKLIST = [
