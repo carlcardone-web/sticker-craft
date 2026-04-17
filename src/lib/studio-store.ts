@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-export type StickerShape = "rectangle" | "oval" | "circle" | "diecut";
+export type StickerShape = "rectangle" | "oval" | "circle" | "diecut" | "square" | "rounded";
 
 export type TextLayer = {
     id: string;
@@ -19,6 +19,7 @@ export type StudioState = {
     imageUrl: string | null; // generated/uploaded artwork
     // Step 2
     shape: StickerShape;
+    size: string;
     container: string;
     textLayers: TextLayer[];
     whiteBorder: boolean;
@@ -27,6 +28,7 @@ export type StudioState = {
     setStylePreset: (v: string | null) => void;
     setImage: (url: string | null) => void;
     setShape: (s: StickerShape) => void;
+    setSize: (v: string) => void;
     addTextLayer: () => void;
     updateTextLayer: (id: string, patch: Partial<TextLayer>) => void;
     removeTextLayer: (id: string) => void;
@@ -40,6 +42,7 @@ const initial = {
     stylePreset: null as string | null,
     imageUrl: null as string | null,
     shape: "rectangle" as StickerShape,
+    size: "medium",
     container: "wine",
     textLayers: [] as TextLayer[],
     whiteBorder: true,
@@ -51,6 +54,7 @@ export const useStudio = create<StudioState>((set) => ({
     setStylePreset: (v) => set({ stylePreset: v }),
     setImage: (url) => set({ imageUrl: url }),
     setShape: (s) => set({ shape: s }),
+    setSize: (v) => set({ size: v }),
     addTextLayer: () =>
           set((s) => {
                   if (s.textLayers.length >= 2) return s;
@@ -89,8 +93,17 @@ export const SHAPE_CHOICES: { id: StickerShape; label: string; description: stri
   { id: "rectangle", label: "Rectangle", description: "Classic front label" },
   { id: "oval",      label: "Oval",       description: "Elegant & traditional" },
   { id: "circle",    label: "Circle",     description: "Neck seal / cap" },
-  { id: "diecut",    label: "Die-cut",    description: "Custom contour" },
+  { id: "diecut", label: "Die-cut", description: "Custom contour" },
+  { id: "square", label: "Square", description: "Modern square label" },
+  { id: "rounded", label: "Rounded", description: "Soft rounded corners" },
   ];
+
+export const SIZE_CHOICES = [
+  { id: "small",  label: "Small",  hint: "2 in" },
+  { id: "medium", label: "Medium", hint: "3 in" },
+  { id: "large",  label: "Large",  hint: "4 in" },
+  { id: "xl",     label: "XL",     hint: "5 in" },
+  ] as const;
 
 export const STYLE_PRESETS = [
   { id: "fine-wine",       label: "Fine Wine",       description: "Botanical engraving — classical, refined" },
@@ -116,15 +129,3 @@ export const STEPS = [
   { id: 3, slug: "preview",   label: "Preview",  path: "/studio/preview" },
   { id: 4, slug: "checkout",  label: "Download", path: "/studio/checkout" },
   ] as const;
-]
-]
-]
-]
-]
-          }))
-                  }
-          })
-}))
-}
-}
-}

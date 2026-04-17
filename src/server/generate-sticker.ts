@@ -8,6 +8,7 @@ type Body = {
     referenceImages?: ReferenceImage[] | null; // up to 3
     container?: string | null;
     shape?: string | null;
+    size?: string | null;
 };
 
 const STYLE_HINTS: Record<string, string> = {
@@ -191,31 +192,4 @@ export const generateSticker = createServerFn({ method: "POST" })
         const url = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
         if (!url) throw new Error("No image returned. Try a different prompt.");
         return { imageUrl: url };
-  });
-                      }
-              }
-                          )
-                }
-                }
-        }
-                })
-                }
-        })
-            ]
-        )
-        }
-  })
-        }
-                    }))
-        }
-  })
-    ]
-    }
-    }
-  }
-)
-}
-}
-}
-}
-}
+});
