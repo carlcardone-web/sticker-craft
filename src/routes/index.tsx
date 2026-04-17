@@ -26,7 +26,7 @@ function Landing() {
           <span className="font-semibold tracking-tight">Sticker Studio</span>
         </Link>
         <Button asChild variant="ghost" className="rounded-full">
-          <Link to="/studio/create">Open studio</Link>
+          <Link to="/studio/bottle">Open studio</Link>
         </Button>
       </header>
 
@@ -44,10 +44,10 @@ function Landing() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="rounded-full px-7 h-12 shadow-glow bg-gradient-sage text-primary-foreground hover:opacity-95">
-              <Link to="/studio/create">Start designing <ArrowRight className="h-4 w-4 ml-1.5" /></Link>
+              <Link to="/studio/bottle">Start designing <ArrowRight className="h-4 w-4 ml-1.5" /></Link>
             </Button>
             <Button asChild size="lg" variant="ghost" className="rounded-full px-6 h-12">
-              <Link to="/studio/create">See templates</Link>
+              <Link to="/studio/bottle">See templates</Link>
             </Button>
           </div>
         </div>

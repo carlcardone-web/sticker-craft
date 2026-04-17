@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,11 +61,18 @@ function CreatePage() {
     setPrompt, setStylePreset, setImage,
     shape, setShape,
     size, setSize,
-    container, setContainer,
+    container, volume,
     textLayers, whiteBorder,
   } = useStudio();
+  const navigate = useNavigate();
   const activeContainer = CONTAINER_CHOICES.find((c) => c.id === container);
   const activeShape = SHAPES.find((s) => s.id === shape);
+
+  useEffect(() => {
+    if (!container || !volume) {
+      navigate({ to: "/studio/bottle" });
+    }
+  }, [container, volume, navigate]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [referenceImages, setReferenceImages] = useState<{ url: string; role: string }[]>([]);
@@ -87,7 +94,7 @@ function CreatePage() {
     setLoading(true);
     try {
       const { imageUrl: url } = await generateSticker({
-        data: { prompt, stylePreset, referenceImages, container, shape, size },
+        data: { prompt, stylePreset, referenceImages, container, shape, size, volume },
       });
       setImage(url);
     } catch (e) {
@@ -141,31 +148,21 @@ function CreatePage() {
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-8 lg:gap-12">
       <section>
-        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Create your sticker</h1>
-        <p className="mt-2 text-muted-foreground">Pick where it goes, then design it.</p>
-
-        {/* Container / Size / Shape — chosen first so the AI plans for them */}
-        <div className="mt-8 space-y-5 rounded-3xl border border-border/60 bg-card/50 p-5">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Where will it go?</p>
-            <div className="flex flex-wrap gap-2">
-              {CONTAINER_CHOICES.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setContainer(c.id)}
-                  className={[
-                    "px-3.5 py-1.5 rounded-full text-sm transition-all",
-                    container === c.id
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                  ].join(" ")}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
+        <div className="flex items-center justify-between gap-3 rounded-2xl bg-muted/50 border border-border/60 px-4 py-2.5 text-sm mb-5">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-muted-foreground shrink-0">Designing for:</span>
+            <span className="font-medium truncate">
+              {activeContainer?.emoji} {activeContainer?.label} · {volume}
+            </span>
           </div>
+          <Link to="/studio/bottle" className="text-primary hover:underline shrink-0">Change</Link>
+        </div>
 
+        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">Create your sticker</h1>
+        <p className="mt-2 text-muted-foreground">Describe it, upload a photo, or pick a template.</p>
+
+        {/* Size / Shape */}
+        <div className="mt-8 space-y-5 rounded-3xl border border-border/60 bg-card/50 p-5">
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Size</p>
             <div className="grid grid-cols-4 gap-2">

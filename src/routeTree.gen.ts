@@ -16,6 +16,7 @@ import { Route as StudioPreviewRouteImport } from './routes/studio.preview'
 import { Route as StudioCustomizeRouteImport } from './routes/studio.customize'
 import { Route as StudioCreateRouteImport } from './routes/studio.create'
 import { Route as StudioCheckoutRouteImport } from './routes/studio.checkout'
+import { Route as StudioBottleRouteImport } from './routes/studio.bottle'
 
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
@@ -52,10 +53,16 @@ const StudioCheckoutRoute = StudioCheckoutRouteImport.update({
   path: '/checkout',
   getParentRoute: () => StudioRoute,
 } as any)
+const StudioBottleRoute = StudioBottleRouteImport.update({
+  id: '/bottle',
+  path: '/bottle',
+  getParentRoute: () => StudioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/studio': typeof StudioRouteWithChildren
+  '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
@@ -64,6 +71,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/studio': typeof StudioRouteWithChildren
+  '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/studio'
+    | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
     | '/studio/customize'
@@ -93,6 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
     | '/studio/customize'
@@ -102,6 +113,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/studio'
+    | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
     | '/studio/customize'
@@ -165,10 +177,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioCheckoutRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/studio/bottle': {
+      id: '/studio/bottle'
+      path: '/bottle'
+      fullPath: '/studio/bottle'
+      preLoaderRoute: typeof StudioBottleRouteImport
+      parentRoute: typeof StudioRoute
+    }
   }
 }
 
 interface StudioRouteChildren {
+  StudioBottleRoute: typeof StudioBottleRoute
   StudioCheckoutRoute: typeof StudioCheckoutRoute
   StudioCreateRoute: typeof StudioCreateRoute
   StudioCustomizeRoute: typeof StudioCustomizeRoute
@@ -177,6 +197,7 @@ interface StudioRouteChildren {
 }
 
 const StudioRouteChildren: StudioRouteChildren = {
+  StudioBottleRoute: StudioBottleRoute,
   StudioCheckoutRoute: StudioCheckoutRoute,
   StudioCreateRoute: StudioCreateRoute,
   StudioCustomizeRoute: StudioCustomizeRoute,

@@ -9,6 +9,7 @@ type Body = {
     container?: string | null;
     shape?: string | null;
     size?: string | null;
+    volume?: string | null;
 };
 
 const STYLE_HINTS: Record<string, string> = {
@@ -62,7 +63,8 @@ function buildPrompt(
     stylePreset?: string | null,
     refs: ReferenceImage[] = [],
     container?: string | null,
-    shape?: string | null
+    shape?: string | null,
+    volume?: string | null,
   ) {
     const style = stylePreset ? STYLE_HINTS[stylePreset] ?? "" : "";
     const shapeHint = shape ? SHAPE_HINTS[shape] ?? "" : "";
@@ -74,6 +76,10 @@ function buildPrompt(
           "STRICT RULES: pure illustration only. No text, no words, no letters, no numbers, no watermark, no logo, no signature, no UI elements. NO transparent background, NO empty background, NO negative space, NO white padding";
 
     const containerCombined = [containerHint, aspectHint].filter(Boolean).join(" — ");
+
+    const volumeNote = volume && container
+        ? `Label sized and proportioned for a ${volume} ${container}.`
+        : "";
 
     const conflictNote =
           container && shape
@@ -100,6 +106,7 @@ function buildPrompt(
           style,
           shapeHint,
           containerCombined,
+          volumeNote,
           conflictNote,
           refNote,
           fillRule,
@@ -132,6 +139,7 @@ export const generateSticker = createServerFn({ method: "POST" })
                 referenceImages: refs,
                 container: typeof input.container === "string" ? input.container.slice(0, 40) : null,
                 shape: typeof input.shape === "string" ? input.shape.slice(0, 40) : null,
+                volume: typeof input.volume === "string" ? input.volume.slice(0, 20) : null,
         };
   })
   .handler(async ({ data }) => {
@@ -146,7 +154,8 @@ export const generateSticker = createServerFn({ method: "POST" })
                 data.stylePreset,
                 refs,
                 data.container,
-                data.shape
+                data.shape,
+                data.volume,
               );
 
         const userContent =

@@ -26,7 +26,8 @@ export const Route = createFileRoute("/studio/customize")({
 function CustomizePage() {
   const s = useStudio();
 
-  const containerLabel = CONTAINER_CHOICES.find((c) => c.id === s.container)?.label ?? s.container;
+  const containerLabel = CONTAINER_CHOICES.find((c) => c.id === s.container)?.label ?? s.container ?? "Bottle";
+  const containerEmoji = CONTAINER_CHOICES.find((c) => c.id === s.container)?.emoji ?? "";
   const sizeLabel = SIZE_CHOICES.find((sz) => sz.id === s.size)?.label ?? s.size;
   const shapeLabel = s.shape.charAt(0).toUpperCase() + s.shape.slice(1);
 
@@ -40,10 +41,10 @@ function CustomizePage() {
 
         <div className="flex items-center justify-between rounded-2xl bg-muted/50 border border-border/60 px-4 py-3 text-sm">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="text-muted-foreground shrink-0">For:</span>
-            <span className="font-medium truncate">{containerLabel} · {sizeLabel} · {shapeLabel}</span>
+            <span className="text-muted-foreground shrink-0">Designing for:</span>
+            <span className="font-medium truncate">{containerEmoji} {containerLabel} · {s.volume ?? sizeLabel} · {shapeLabel}</span>
           </div>
-          <Link to="/studio/create" className="text-primary hover:underline shrink-0 ml-2">Change</Link>
+          <Link to="/studio/bottle" className="text-primary hover:underline shrink-0 ml-2">Change</Link>
         </div>
 
         <section>
