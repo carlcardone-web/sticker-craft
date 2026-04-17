@@ -112,6 +112,29 @@ function CreatePage() {
                 ))}
               </div>
             </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Quality</p>
+              <div className="inline-flex p-1 rounded-full bg-muted">
+                <button
+                  onClick={() => setQuality("fast")}
+                  className={[
+                    "px-3.5 py-1.5 rounded-full text-sm flex items-center gap-1.5 transition-all",
+                    quality === "fast" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+                  ].join(" ")}
+                >
+                  <Zap className="h-3.5 w-3.5" /> Fast
+                </button>
+                <button
+                  onClick={() => setQuality("high")}
+                  className={[
+                    "px-3.5 py-1.5 rounded-full text-sm flex items-center gap-1.5 transition-all",
+                    quality === "high" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+                  ].join(" ")}
+                >
+                  <Gem className="h-3.5 w-3.5" /> High quality
+                </button>
+              </div>
+            </div>
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
                 <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
