@@ -191,31 +191,4 @@ export const generateSticker = createServerFn({ method: "POST" })
         const url = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
         if (!url) throw new Error("No image returned. Try a different prompt.");
         return { imageUrl: url };
-  });
-                      }
-              }
-                          )
-                }
-                }
-        }
-                })
-                }
-        })
-            ]
-        )
-        }
-  })
-        }
-                    }))
-        }
-  })
-    ]
-    }
-    }
-  }
-)
-}
-}
-}
-}
-}
+});
