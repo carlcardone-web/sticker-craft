@@ -29,12 +29,9 @@ export type StudioState = {
   whiteBorder: boolean;
   // Step 3
   container: string;
-  // Generation
-  quality: "fast" | "high";
 
   setPrompt: (v: string) => void;
   setStylePreset: (v: string | null) => void;
-  setQuality: (q: "fast" | "high") => void;
   setImage: (url: string | null) => void;
   setShape: (s: StickerShape) => void;
   addTextLayer: () => void;
@@ -53,14 +50,12 @@ const initial = {
   textLayers: [] as TextLayer[],
   whiteBorder: true,
   container: "wine",
-  quality: "fast" as "fast" | "high",
 };
 
 export const useStudio = create<StudioState>((set) => ({
   ...initial,
   setPrompt: (v) => set({ prompt: v }),
   setStylePreset: (v) => set({ stylePreset: v }),
-  setQuality: (q) => set({ quality: q }),
   setImage: (url) => set({ imageUrl: url }),
   setShape: (s) => set({ shape: s }),
   addTextLayer: () =>

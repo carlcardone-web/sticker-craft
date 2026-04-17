@@ -1,13 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { STYLE_PRESETS, useStudio } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
-import { supabase } from "@/integrations/supabase/client";
-import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert, Zap, Gem } from "lucide-react";
+import { Sparkles, Upload, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert } from "lucide-react";
 
 const BLOCKLIST = [
   "disney", "marvel", "pokemon", "mickey", "elsa", "spider-man", "spiderman",
@@ -110,29 +109,6 @@ function CreatePage() {
                     {s.label}
                   </button>
                 ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Quality</p>
-              <div className="inline-flex p-1 rounded-full bg-muted">
-                <button
-                  onClick={() => setQuality("fast")}
-                  className={[
-                    "px-3.5 py-1.5 rounded-full text-sm flex items-center gap-1.5 transition-all",
-                    quality === "fast" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
-                  <Zap className="h-3.5 w-3.5" /> Fast
-                </button>
-                <button
-                  onClick={() => setQuality("high")}
-                  className={[
-                    "px-3.5 py-1.5 rounded-full text-sm flex items-center gap-1.5 transition-all",
-                    quality === "high" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
-                  <Gem className="h-3.5 w-3.5" /> High quality
-                </button>
               </div>
             </div>
             {error && (

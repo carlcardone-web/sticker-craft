@@ -1,4 +1,1 @@
 project_id = "grtwuflrbuvfusxemdsp"
-
-[functions.generate-sticker]
-verify_jwt = false
