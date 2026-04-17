@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { MentionTextarea } from "@/components/studio/MentionTextarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   STYLE_PRESETS,
@@ -187,12 +187,16 @@ function CreatePage() {
           </TabsList>
 
           <TabsContent value="describe" className="mt-6 space-y-5">
-            <Textarea
-              placeholder="A botanical wreath of eucalyptus and tiny wildflowers, soft watercolor, on cream"
+            <MentionTextarea
+              placeholder="A botanical wreath of @subject in @color-palette tones, soft watercolor, on cream"
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={setPrompt}
+              references={referenceImages}
               className="min-h-28 rounded-2xl border-border bg-card shadow-sm resize-none text-base"
             />
+            <p className="-mt-3 text-xs text-muted-foreground">
+              Tip: type <span className="font-mono text-primary">@</span> to reference an uploaded photo (e.g. <span className="font-mono">@subject</span>, <span className="font-mono">@background</span>).
+            </p>
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Style</p>
               <div className="flex flex-wrap gap-2">
