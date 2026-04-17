@@ -196,6 +196,7 @@ function CreatePage() {
                 ))}
               </div>
             </div>
+            <EngineControls />
             {error && (
               <div className="flex items-start gap-2 p-3 rounded-xl bg-destructive/10 text-destructive text-sm">
                 <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
@@ -236,6 +237,12 @@ function CreatePage() {
                 ))}
               </div>
             </div>
+            <EngineControls />
+            {provider === "replicate" && (
+              <p className="text-xs text-muted-foreground">
+                Style transfer on uploads uses Lovable AI. Switch engines to apply a style to a photo.
+              </p>
+            )}
           </TabsContent>
 
           <TabsContent value="templates" className="mt-6">
