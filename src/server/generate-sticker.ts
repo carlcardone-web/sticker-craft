@@ -115,6 +115,7 @@ function buildPrompt(
           dimensionNote,
           conflictNote,
           refNote,
+          mentionNote,
           fillRule,
           renderClause,
         ]
