@@ -82,7 +82,5 @@ export function StickerArtwork({
             </div>
           </div>
         </div>
-      </div>
     );
-}
 }
