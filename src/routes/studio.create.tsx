@@ -14,7 +14,7 @@ import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { generateSticker } from "@/server/generate-sticker";
 import {
   Sparkles, LayoutGrid, RefreshCw, ArrowRight, ShieldAlert,
-  ImagePlus, X, Circle, Square, RectangleHorizontal, Squircle, Pencil,
+  ImagePlus, X, Circle, Square, RectangleHorizontal, Squircle, Pencil, Wand2,
 } from "lucide-react";
 
 const BLOCKLIST = [
@@ -22,18 +22,78 @@ const BLOCKLIST = [
   "batman", "superman", "harry potter", "star wars", "nike logo", "coca-cola",
 ];
 
-const TEMPLATES = [
-  { occasion: "Wedding", title: "Eucalyptus monogram", color: "from-[oklch(0.86_0.04_150)] to-[oklch(0.92_0.02_120)]" },
-  { occasion: "Wedding", title: "Gold botanical", color: "from-[oklch(0.92_0.05_85)] to-[oklch(0.86_0.04_70)]" },
-  { occasion: "Birthday", title: "Confetti pop", color: "from-[oklch(0.88_0.08_30)] to-[oklch(0.9_0.07_55)]" },
-  { occasion: "Birthday", title: "Pastel balloons", color: "from-[oklch(0.9_0.05_320)] to-[oklch(0.92_0.04_200)]" },
-  { occasion: "Baby Shower", title: "Cloud nine", color: "from-[oklch(0.95_0.02_220)] to-[oklch(0.93_0.03_200)]" },
-  { occasion: "Baby Shower", title: "Tiny moon", color: "from-[oklch(0.92_0.03_260)] to-[oklch(0.88_0.04_280)]" },
-  { occasion: "Housewarming", title: "Welcome home", color: "from-[oklch(0.9_0.04_60)] to-[oklch(0.88_0.05_40)]" },
-  { occasion: "Holiday", title: "Pine & cinnamon", color: "from-[oklch(0.85_0.06_150)] to-[oklch(0.8_0.07_30)]" },
-  { occasion: "Holiday", title: "Snow garland", color: "from-[oklch(0.95_0.01_220)] to-[oklch(0.9_0.02_200)]" },
-  { occasion: "Corporate", title: "Crisp monogram", color: "from-[oklch(0.92_0.01_250)] to-[oklch(0.88_0.02_240)]" },
+type Template = {
+  occasion: string;
+  title: string;
+  color: string;
+  prompt: string;
+  styleId: string;
+  shape: StickerShape;
+};
+
+const TEMPLATES: Template[] = [
+  {
+    occasion: "Wedding", title: "Eucalyptus monogram",
+    color: "from-[oklch(0.86_0.04_150)] to-[oklch(0.92_0.02_120)]",
+    prompt: "A delicate wreath of eucalyptus leaves and tiny white wildflowers framing an elegant monogram, soft watercolor on cream background, airy and romantic",
+    styleId: "natural-wine", shape: "circle",
+  },
+  {
+    occasion: "Wedding", title: "Gold botanical",
+    color: "from-[oklch(0.92_0.05_85)] to-[oklch(0.86_0.04_70)]",
+    prompt: "An ornate botanical border in warm gold leaf with classical engraved leaves and small berries, refined and timeless, ivory background",
+    styleId: "fine-wine", shape: "oval",
+  },
+  {
+    occasion: "Birthday", title: "Confetti pop",
+    color: "from-[oklch(0.88_0.08_30)] to-[oklch(0.9_0.07_55)]",
+    prompt: "Joyful scattered confetti and streamers in coral, peach and gold, playful hand-drawn shapes on a warm cream background",
+    styleId: "craft-beer", shape: "square",
+  },
+  {
+    occasion: "Birthday", title: "Pastel balloons",
+    color: "from-[oklch(0.9_0.05_320)] to-[oklch(0.92_0.04_200)]",
+    prompt: "A cheerful cluster of pastel pink, mint and sky-blue balloons with delicate strings, soft flat illustration style, white background",
+    styleId: "modern-label", shape: "square",
+  },
+  {
+    occasion: "Baby Shower", title: "Cloud nine",
+    color: "from-[oklch(0.95_0.02_220)] to-[oklch(0.93_0.03_200)]",
+    prompt: "Fluffy soft clouds with tiny stars in a dreamy pale blue sky, gentle watercolor wash, calm and tender",
+    styleId: "natural-wine", shape: "rounded",
+  },
+  {
+    occasion: "Baby Shower", title: "Tiny moon",
+    color: "from-[oklch(0.92_0.03_260)] to-[oklch(0.88_0.04_280)]",
+    prompt: "A sleeping crescent moon with a single twinkling star, minimal line illustration in soft lavender, peaceful nursery feel",
+    styleId: "modern-label", shape: "circle",
+  },
+  {
+    occasion: "Housewarming", title: "Welcome home",
+    color: "from-[oklch(0.9_0.04_60)] to-[oklch(0.88_0.05_40)]",
+    prompt: "A cozy little house with warm lit windows surrounded by leafy plants and a small welcome banner, friendly hand-drawn illustration",
+    styleId: "craft-beer", shape: "rounded",
+  },
+  {
+    occasion: "Holiday", title: "Pine & cinnamon",
+    color: "from-[oklch(0.85_0.06_150)] to-[oklch(0.8_0.07_30)]",
+    prompt: "A festive wreath of pine sprigs, cinnamon sticks, and red berries tied with a rustic ribbon, warm botanical engraving style",
+    styleId: "fine-wine", shape: "circle",
+  },
+  {
+    occasion: "Holiday", title: "Snow garland",
+    color: "from-[oklch(0.95_0.01_220)] to-[oklch(0.9_0.02_200)]",
+    prompt: "A delicate winter garland of snow-dusted evergreen branches and silver ornaments, luminous and elegant on a soft white background",
+    styleId: "sparkling", shape: "rectangle",
+  },
+  {
+    occasion: "Corporate", title: "Crisp monogram",
+    color: "from-[oklch(0.92_0.01_250)] to-[oklch(0.88_0.02_240)]",
+    prompt: "A clean modern monogram inside a thin geometric frame, minimal flat design, neutral palette of slate and warm white",
+    styleId: "modern-label", shape: "square",
+  },
 ];
+
 
 const SHAPES: { id: StickerShape; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "circle", label: "Circle", Icon: Circle },
@@ -74,6 +134,7 @@ function CreatePage() {
   }, [container, volume, navigate]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"describe" | "templates">("describe");
 
   const MAX_REFS = 3;
   const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
@@ -165,13 +226,13 @@ function CreatePage() {
           </div>
         </div>
 
-        <Tabs defaultValue="describe" className="mt-8">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "describe" | "templates")} className="mt-8">
           <TabsList className="bg-muted/60 p-1 rounded-full h-auto">
             <TabsTrigger value="describe" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Sparkles className="h-4 w-4 mr-1.5" /> Describe it
             </TabsTrigger>
             <TabsTrigger value="templates" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <LayoutGrid className="h-4 w-4 mr-1.5" /> Templates
+              <LayoutGrid className="h-4 w-4 mr-1.5" /> Starter ideas
             </TabsTrigger>
           </TabsList>
 
@@ -298,22 +359,42 @@ function CreatePage() {
               )}
             </div>
           </TabsContent>
-          <TabsContent value="templates" className="mt-6">
+          <TabsContent value="templates" className="mt-6 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Pick one to pre-fill the prompt, style, and shape — you can edit everything before generating.
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.title}
-                  onClick={() => {
-                    const svg = `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23eef3ec"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="Inter" font-size="20" fill="%237ea38a">${t.title}</text></svg>`;
-                    setImage(`data:image/svg+xml;utf8,${svg}`);
-                  }}
-                  className="group text-left"
-                >
-                  <div className={`aspect-square rounded-2xl bg-gradient-to-br ${t.color} shadow-soft transition-transform group-hover:-translate-y-0.5 group-hover:shadow-soft-lg`} />
-                  <p className="mt-2 text-sm font-medium truncate">{t.title}</p>
-                  <p className="text-xs text-muted-foreground">{t.occasion}</p>
-                </button>
-              ))}
+              {TEMPLATES.map((t) => {
+                const styleLabel = STYLE_PRESETS.find((s) => s.id === t.styleId)?.label;
+                return (
+                  <button
+                    key={t.title}
+                    onClick={() => {
+                      setPrompt(t.prompt);
+                      setStylePreset(t.styleId);
+                      setShape(t.shape);
+                      setActiveTab("describe");
+                      toast.success(`Loaded "${t.title}" — tweak it and hit Generate`);
+                    }}
+                    className="group text-left"
+                  >
+                    <div className={`relative aspect-square rounded-2xl bg-gradient-to-br ${t.color} shadow-soft transition-transform group-hover:-translate-y-0.5 group-hover:shadow-soft-lg overflow-hidden`}>
+                      {styleLabel && (
+                        <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-foreground/80">
+                          {styleLabel}
+                        </span>
+                      )}
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-foreground/30">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm">
+                          <Wand2 className="h-3.5 w-3.5" /> Use this
+                        </span>
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm font-medium truncate">{t.title}</p>
+                    <p className="text-xs text-muted-foreground">{t.occasion}</p>
+                  </button>
+                );
+              })}
             </div>
           </TabsContent>
         </Tabs>
