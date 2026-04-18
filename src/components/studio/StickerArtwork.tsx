@@ -80,9 +80,11 @@ export function StickerArtwork({
       realH = ratio >= 1 ? 1 / ratio : 1;
     }
 
-    const maxEdge = Math.max(realW, realH);
-    const width = Math.round(size * (realW / maxEdge));
-    const height = Math.round(size * (realH / maxEdge));
+    // Use the bottle's natural max edge as a shared scale reference, so all
+    // shapes for the same bottle render against the same pixel budget.
+    const bottleMaxEdge = dims ? Math.max(dims.w, dims.h) : Math.max(realW, realH);
+    const width = Math.round(size * (realW / bottleMaxEdge));
+    const height = Math.round(size * (realH / bottleMaxEdge));
 
     const radius = shapeRadius(shape);
     const padding = whiteBorder ? Math.round(Math.min(width, height) * 0.04) : 0;
