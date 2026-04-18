@@ -142,6 +142,8 @@ function CustomizePage() {
           container={s.container}
           volume={s.volume}
           size={360}
+          showDimensions
+          showScaleHint
         />
       </section>
     </div>

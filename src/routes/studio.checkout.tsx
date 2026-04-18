@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useStudio } from "@/lib/studio-store";
+import { useStudio, getLabelDimensions, CONTAINER_CHOICES, SHAPE_CHOICES } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { ArrowLeft, Check, Download, Package, Truck } from "lucide-react";
 
@@ -48,14 +48,35 @@ function CheckoutPage() {
     setDownloaded(true);
   }
 
+  const dims = getLabelDimensions(s.container, s.volume);
+  const isFixedSquare = s.shape === "circle" || s.shape === "square" || s.shape === "rounded";
+  const labelW = dims ? (isFixedSquare ? Math.min(dims.w, dims.h) : dims.w) : null;
+  const labelH = dims ? (isFixedSquare ? Math.min(dims.w, dims.h) : dims.h) : null;
+  const containerInfo = CONTAINER_CHOICES.find((c) => c.id === s.container);
+  const shapeInfo = SHAPE_CHOICES.find((sh) => sh.id === s.shape);
+
   return (
     <div className="grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12">
       <section className="rounded-3xl bg-card p-8 shadow-soft border border-border/60 flex flex-col items-center justify-center">
-        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} container={s.container} volume={s.volume} size={300} />
+        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} container={s.container} volume={s.volume} size={300} showDimensions />
         <p className="mt-6 text-sm text-muted-foreground">Your sticker is ready.</p>
       </section>
 
       <section className="space-y-5">
+        <div className="rounded-3xl bg-card border border-border/60 shadow-soft p-6">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Specifications</p>
+          <dl className="grid grid-cols-2 gap-y-2 text-sm">
+            <dt className="text-muted-foreground">Container</dt>
+            <dd className="text-right font-medium">{containerInfo ? `${containerInfo.emoji} ${containerInfo.label}` : "—"}</dd>
+            <dt className="text-muted-foreground">Volume</dt>
+            <dd className="text-right font-medium">{s.volume ?? "—"}</dd>
+            <dt className="text-muted-foreground">Shape</dt>
+            <dd className="text-right font-medium">{shapeInfo?.label ?? s.shape}</dd>
+            <dt className="text-muted-foreground">Label size</dt>
+            <dd className="text-right font-medium tabular-nums">{labelW && labelH ? `${labelW} × ${labelH} cm` : "—"}</dd>
+          </dl>
+        </div>
+
         <div className="rounded-3xl bg-card border border-border/60 shadow-soft p-6">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-2xl bg-primary-soft flex items-center justify-center text-primary-deep">

@@ -341,7 +341,7 @@ function CreatePage() {
                 className="group relative rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 aria-label="Edit sticker"
               >
-                <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
+                <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} showDimensions showScaleHint />
                 <span className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-2xl bg-foreground/0 group-hover:bg-foreground/40 transition-colors">
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity inline-flex items-center gap-1.5 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm">
                     <Pencil className="h-3.5 w-3.5" /> Click to edit
@@ -349,7 +349,7 @@ function CreatePage() {
                 </span>
               </button>
             ) : (
-              <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} />
+              <StickerArtwork imageUrl={imageUrl} shape={shape} textLayers={[]} whiteBorder={true} container={container} volume={volume} size={240} showDimensions showScaleHint />
             )}
           </div>
           <p className="mt-3 text-center text-xs text-muted-foreground">{activeContainer?.emoji} {activeContainer?.label ?? "Bottle"} · {activeShape?.label ?? "Label"} label</p>
