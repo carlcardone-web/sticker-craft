@@ -148,7 +148,7 @@ export function StickerArtwork({
                     style={{
                       left: `${l.x}%`,
                       top: `${l.y}%`,
-                      fontFamily: l.font,
+                      fontFamily: getFontFamilyCSS(l.font, customFonts),
                       color: l.color,
                       fontSize: l.size,
                       textShadow: "0 1px 2px rgba(255,255,255,0.4)",
