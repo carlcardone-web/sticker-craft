@@ -12,6 +12,8 @@ export type TextLayer = {
     y: number;
 };
 
+export type ImageTransform = { scale: number; offsetX: number; offsetY: number };
+
 export type StudioState = {
     // Step 0
     container: string | null;
@@ -24,6 +26,7 @@ export type StudioState = {
     shape: StickerShape;
     textLayers: TextLayer[];
     whiteBorder: boolean;
+    imageTransform: ImageTransform;
 
     setContainer: (c: string | null) => void;
     setVolume: (v: string | null) => void;
@@ -35,8 +38,12 @@ export type StudioState = {
     updateTextLayer: (id: string, patch: Partial<TextLayer>) => void;
     removeTextLayer: (id: string) => void;
     setWhiteBorder: (v: boolean) => void;
+    setImageTransform: (patch: Partial<ImageTransform>) => void;
+    resetImageTransform: () => void;
     reset: () => void;
 };
+
+const DEFAULT_TRANSFORM: ImageTransform = { scale: 1, offsetX: 0, offsetY: 0 };
 
 const initial = {
     container: null as string | null,
@@ -47,6 +54,7 @@ const initial = {
     shape: "rectangle" as StickerShape,
     textLayers: [] as TextLayer[],
     whiteBorder: true,
+    imageTransform: { ...DEFAULT_TRANSFORM },
 };
 
 export const useStudio = create<StudioState>((set) => ({
@@ -55,7 +63,10 @@ export const useStudio = create<StudioState>((set) => ({
     setVolume: (v) => set({ volume: v }),
     setPrompt: (v) => set({ prompt: v }),
     setStylePreset: (v) => set({ stylePreset: v }),
-    setImage: (url) => set({ imageUrl: url }),
+    setImage: (url) => set({ imageUrl: url, imageTransform: { ...DEFAULT_TRANSFORM } }),
+    setImageTransform: (patch) =>
+        set((s) => ({ imageTransform: { ...s.imageTransform, ...patch } })),
+    resetImageTransform: () => set({ imageTransform: { ...DEFAULT_TRANSFORM } }),
     setShape: (s) => set({ shape: s }),
     addTextLayer: () =>
         set((s) => {

@@ -1,4 +1,4 @@
-import { getLabelDimensions, type StickerShape, type TextLayer } from "@/lib/studio-store";
+import { getLabelDimensions, type StickerShape, type TextLayer, type ImageTransform } from "@/lib/studio-store";
 
 type Props = {
     imageUrl: string | null;
@@ -10,6 +10,7 @@ type Props = {
     size?: number; // longest-edge px budget
     showDimensions?: boolean;
     showScaleHint?: boolean;
+    imageTransform?: ImageTransform;
     className?: string;
 };
 
@@ -56,9 +57,11 @@ export function StickerArtwork({
     size = 280,
     showDimensions = false,
     showScaleHint = false,
+    imageTransform,
     className = "",
 }: Props) {
     const dims = getLabelDimensions(container, volume);
+    const t = imageTransform ?? { scale: 1, offsetX: 0, offsetY: 0 };
 
     // Real-world dimensions (cm) used both for shape ratio AND on-screen scaling.
     // For square/circle/rounded we collapse to a square using the smaller edge,
@@ -80,9 +83,11 @@ export function StickerArtwork({
       realH = ratio >= 1 ? 1 / ratio : 1;
     }
 
-    const maxEdge = Math.max(realW, realH);
-    const width = Math.round(size * (realW / maxEdge));
-    const height = Math.round(size * (realH / maxEdge));
+    // Use the bottle's natural max edge as a shared scale reference, so all
+    // shapes for the same bottle render against the same pixel budget.
+    const bottleMaxEdge = dims ? Math.max(dims.w, dims.h) : Math.max(realW, realH);
+    const width = Math.round(size * (realW / bottleMaxEdge));
+    const height = Math.round(size * (realH / bottleMaxEdge));
 
     const radius = shapeRadius(shape);
     const padding = whiteBorder ? Math.round(Math.min(width, height) * 0.04) : 0;
@@ -116,6 +121,10 @@ export function StickerArtwork({
                   alt="Sticker artwork"
                   className="h-full w-full object-cover"
                   draggable={false}
+                  style={{
+                    transform: `translate(${t.offsetX}%, ${t.offsetY}%) scale(${t.scale})`,
+                    transformOrigin: "center",
+                  }}
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground p-4 text-center">

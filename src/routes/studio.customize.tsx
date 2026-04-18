@@ -57,6 +57,54 @@ function CustomizePage() {
           <Link to="/studio/bottle" className="text-primary hover:underline shrink-0 ml-2">Change</Link>
         </div>
 
+        {s.imageUrl && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Image framing</p>
+              <Button variant="ghost" size="sm" onClick={s.resetImageTransform} className="rounded-full text-xs">
+                Reset
+              </Button>
+            </div>
+            <div className="rounded-2xl bg-card border border-border/60 p-4 space-y-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Zoom {s.imageTransform.scale.toFixed(2)}×</Label>
+                <Slider
+                  value={[s.imageTransform.scale]}
+                  min={0.8}
+                  max={2.5}
+                  step={0.05}
+                  onValueChange={(v) => s.setImageTransform({ scale: v[0] })}
+                  className="mt-2"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Horizontal</Label>
+                  <Slider
+                    value={[s.imageTransform.offsetX]}
+                    min={-50}
+                    max={50}
+                    step={1}
+                    onValueChange={(v) => s.setImageTransform({ offsetX: v[0] })}
+                    className="mt-2"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Vertical</Label>
+                  <Slider
+                    value={[s.imageTransform.offsetY]}
+                    min={-50}
+                    max={50}
+                    step={1}
+                    onValueChange={(v) => s.setImageTransform({ offsetY: v[0] })}
+                    className="mt-2"
+                  />
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section>
           <div className="flex items-center justify-between rounded-2xl bg-card border border-border/60 p-3">
             <Label htmlFor="border" className="text-sm">White die-cut border</Label>
@@ -144,6 +192,7 @@ function CustomizePage() {
           size={360}
           showDimensions
           showScaleHint
+          imageTransform={s.imageTransform}
         />
       </section>
     </div>
