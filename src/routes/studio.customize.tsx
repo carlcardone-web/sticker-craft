@@ -356,60 +356,27 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleGenerate} disabled={generating} size="sm" className="rounded-full flex-1 bg-gradient-sage text-primary-foreground hover:opacity-95">
-              {generating ? (
-                <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</>
-              ) : l.aiImageUrl ? (
-                <><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate</>
-              ) : (
-                <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate text</>
-              )}
-            </Button>
-            {l.aiImageUrl && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => s.setTextLayerAiImage(l.id, null)}
-                className="rounded-full"
-              >
-                Clear
-              </Button>
+          {!s.imageUrl && (
+            <p className="text-[11px] text-muted-foreground italic">
+              Generate the artwork on the previous step first, then come back to bake text into it.
+            </p>
+          )}
+
+          <Button
+            onClick={handleGenerate}
+            disabled={generating || !s.imageUrl}
+            size="sm"
+            className="rounded-full w-full bg-gradient-sage text-primary-foreground hover:opacity-95"
+          >
+            {generating ? (
+              <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Baking text into artwork…</>
+            ) : (
+              <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Bake text into artwork</>
             )}
-          </div>
-
-          {l.aiImageUrl && (
-            <div className="rounded-xl border border-border p-2 flex items-center justify-center">
-              <img src={l.aiImageUrl} alt="Generated text" className="max-h-20 object-contain" />
-            </div>
-          )}
-
-          {l.aiImageUrl && (
-            <div className="space-y-2">
-              <div>
-                <Label className="text-xs text-muted-foreground">Size {aiWidth}%</Label>
-                <Slider
-                  value={[aiWidth]}
-                  min={20}
-                  max={100}
-                  step={1}
-                  onValueChange={(v) => s.updateTextLayer(l.id, { aiWidth: v[0] })}
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Rotation {rotation}°</Label>
-                <Slider
-                  value={[rotation]}
-                  min={-45}
-                  max={45}
-                  step={1}
-                  onValueChange={(v) => s.updateTextLayer(l.id, { rotation: v[0] })}
-                  className="mt-2"
-                />
-              </div>
-            </div>
-          )}
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            The text will be drawn directly into your sticker so it matches the style perfectly.
+          </p>
         </div>
       )}
 
