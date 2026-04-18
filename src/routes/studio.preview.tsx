@@ -62,6 +62,7 @@ function PreviewPage() {
             </div>
           </div>
         </div>
+        <LabelDimsCaption container={s.container} volume={s.volume} shape={s.shape} />
 
         <div className="mt-5 flex gap-2 overflow-x-auto pb-1 -mx-2 px-2">
           {CONTAINERS.map((c) => (
