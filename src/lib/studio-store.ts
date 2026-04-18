@@ -48,6 +48,7 @@ export type StudioState = {
     textLayers: TextLayer[];
     whiteBorder: boolean;
     imageTransform: ImageTransform;
+    customFonts: CustomFont[];
 
     setContainer: (c: string | null) => void;
     setVolume: (v: string | null) => void;
@@ -69,6 +70,8 @@ export type StudioState = {
     updateReferenceImageRole: (id: string, role: string) => void;
     removeReferenceImage: (id: string) => void;
     clearReferenceImages: () => void;
+    addCustomFont: (font: Omit<CustomFont, "id">) => string;
+    removeCustomFont: (id: string) => void;
     reset: () => void;
 };
 
@@ -87,6 +90,7 @@ const initial = {
     textLayers: [] as TextLayer[],
     whiteBorder: true,
     imageTransform: { ...DEFAULT_TRANSFORM },
+    customFonts: [] as CustomFont[],
 };
 
 export const useStudio = create<StudioState>()(
