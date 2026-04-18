@@ -57,9 +57,11 @@ export function StickerArtwork({
     size = 280,
     showDimensions = false,
     showScaleHint = false,
+    imageTransform,
     className = "",
 }: Props) {
     const dims = getLabelDimensions(container, volume);
+    const t = imageTransform ?? { scale: 1, offsetX: 0, offsetY: 0 };
 
     // Real-world dimensions (cm) used both for shape ratio AND on-screen scaling.
     // For square/circle/rounded we collapse to a square using the smaller edge,
