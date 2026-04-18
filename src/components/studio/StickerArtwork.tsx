@@ -1,4 +1,6 @@
-import { getLabelDimensions, type StickerShape, type TextLayer, type ImageTransform } from "@/lib/studio-store";
+import { useEffect } from "react";
+import { getLabelDimensions, type StickerShape, type TextLayer, type ImageTransform, useStudio } from "@/lib/studio-store";
+import { ensureFontLoaded, getFontFamilyCSS, injectCustomFonts } from "@/lib/fonts";
 
 type Props = {
     imageUrl: string | null;
