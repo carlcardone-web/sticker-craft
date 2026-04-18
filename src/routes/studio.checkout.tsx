@@ -64,6 +64,20 @@ function CheckoutPage() {
 
       <section className="space-y-5">
         <div className="rounded-3xl bg-card border border-border/60 shadow-soft p-6">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">Specifications</p>
+          <dl className="grid grid-cols-2 gap-y-2 text-sm">
+            <dt className="text-muted-foreground">Container</dt>
+            <dd className="text-right font-medium">{containerInfo ? `${containerInfo.emoji} ${containerInfo.label}` : "—"}</dd>
+            <dt className="text-muted-foreground">Volume</dt>
+            <dd className="text-right font-medium">{s.volume ?? "—"}</dd>
+            <dt className="text-muted-foreground">Shape</dt>
+            <dd className="text-right font-medium">{shapeInfo?.label ?? s.shape}</dd>
+            <dt className="text-muted-foreground">Label size</dt>
+            <dd className="text-right font-medium tabular-nums">{labelW && labelH ? `${labelW} × ${labelH} cm` : "—"}</dd>
+          </dl>
+        </div>
+
+        <div className="rounded-3xl bg-card border border-border/60 shadow-soft p-6">
           <div className="flex items-start gap-3">
             <div className="h-10 w-10 rounded-2xl bg-primary-soft flex items-center justify-center text-primary-deep">
               <Download className="h-5 w-5" />
