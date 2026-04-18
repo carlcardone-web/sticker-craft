@@ -60,6 +60,8 @@ function CreatePage() {
     setPrompt, setStylePreset, setImage,
     shape, setShape,
     container, volume,
+    referenceImages,
+    addReferenceImage, updateReferenceImageRole, removeReferenceImage,
   } = useStudio();
   const navigate = useNavigate();
   const activeContainer = CONTAINER_CHOICES.find((c) => c.id === container);
@@ -72,7 +74,6 @@ function CreatePage() {
   }, [container, volume, navigate]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [referenceImages, setReferenceImages] = useState<{ url: string; role: string }[]>([]);
 
   const MAX_REFS = 3;
   const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
@@ -118,22 +119,10 @@ function CreatePage() {
       }
       const reader = new FileReader();
       reader.onload = () => {
-        setReferenceImages((prev) =>
-          prev.length >= MAX_REFS
-            ? prev
-            : [...prev, { url: reader.result as string, role: "Subject" }]
-        );
+        addReferenceImage(reader.result as string, "Subject");
       };
       reader.readAsDataURL(file);
     });
-  }
-
-  function updateReferenceRole(index: number, role: string) {
-    setReferenceImages((prev) => prev.map((r, i) => (i === index ? { ...r, role } : r)));
-  }
-
-  function removeReference(index: number) {
-    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (

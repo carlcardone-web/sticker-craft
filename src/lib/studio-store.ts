@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 export type StickerShape = "rectangle" | "oval" | "circle" | "diecut" | "square" | "rounded";
 
@@ -14,6 +15,8 @@ export type TextLayer = {
 
 export type ImageTransform = { scale: number; offsetX: number; offsetY: number };
 
+export type ReferenceImage = { id: string; url: string; role: string };
+
 export type StudioState = {
     // Step 0
     container: string | null;
@@ -22,6 +25,7 @@ export type StudioState = {
     prompt: string;
     stylePreset: string | null;
     imageUrl: string | null;
+    referenceImages: ReferenceImage[];
     // Step 2
     shape: StickerShape;
     textLayers: TextLayer[];
@@ -40,10 +44,16 @@ export type StudioState = {
     setWhiteBorder: (v: boolean) => void;
     setImageTransform: (patch: Partial<ImageTransform>) => void;
     resetImageTransform: () => void;
+    addReferenceImage: (url: string, role?: string) => void;
+    updateReferenceImageRole: (id: string, role: string) => void;
+    removeReferenceImage: (id: string) => void;
+    clearReferenceImages: () => void;
     reset: () => void;
 };
 
 const DEFAULT_TRANSFORM: ImageTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+
+const MAX_REFERENCES = 3;
 
 const initial = {
     container: null as string | null,
@@ -51,46 +61,103 @@ const initial = {
     prompt: "",
     stylePreset: null as string | null,
     imageUrl: null as string | null,
+    referenceImages: [] as ReferenceImage[],
     shape: "rectangle" as StickerShape,
     textLayers: [] as TextLayer[],
     whiteBorder: true,
     imageTransform: { ...DEFAULT_TRANSFORM },
 };
 
-export const useStudio = create<StudioState>((set) => ({
-    ...initial,
-    setContainer: (c) => set({ container: c }),
-    setVolume: (v) => set({ volume: v }),
-    setPrompt: (v) => set({ prompt: v }),
-    setStylePreset: (v) => set({ stylePreset: v }),
-    setImage: (url) => set({ imageUrl: url, imageTransform: { ...DEFAULT_TRANSFORM } }),
-    setImageTransform: (patch) =>
-        set((s) => ({ imageTransform: { ...s.imageTransform, ...patch } })),
-    resetImageTransform: () => set({ imageTransform: { ...DEFAULT_TRANSFORM } }),
-    setShape: (s) => set({ shape: s }),
-    addTextLayer: () =>
-        set((s) => {
-            if (s.textLayers.length >= 2) return s;
-            const layer: TextLayer = {
-                id: crypto.randomUUID(),
-                text: s.textLayers.length === 0 ? "Sarah & Tom" : "June 14, 2026",
-                font: "Inter",
-                color: "#1f2a24",
-                size: 22,
-                x: 50,
-                y: s.textLayers.length === 0 ? 78 : 88,
-            };
-            return { textLayers: [...s.textLayers, layer] };
+export const useStudio = create<StudioState>()(
+    persist(
+        (set) => ({
+            ...initial,
+            setContainer: (c) =>
+                set((s) => {
+                    if (c === s.container) return { container: c };
+                    // Reset volume if it's no longer valid for the new container.
+                    const valid = c ? BOTTLE_VOLUMES[c] ?? [] : [];
+                    const nextVolume = s.volume && valid.includes(s.volume) ? s.volume : null;
+                    return { container: c, volume: nextVolume };
+                }),
+            setVolume: (v) => set({ volume: v }),
+            setPrompt: (v) => set({ prompt: v }),
+            setStylePreset: (v) => set({ stylePreset: v }),
+            setImage: (url) => set({ imageUrl: url, imageTransform: { ...DEFAULT_TRANSFORM } }),
+            setImageTransform: (patch) =>
+                set((s) => ({ imageTransform: { ...s.imageTransform, ...patch } })),
+            resetImageTransform: () => set({ imageTransform: { ...DEFAULT_TRANSFORM } }),
+            setShape: (s) => set({ shape: s }),
+            addTextLayer: () =>
+                set((s) => {
+                    if (s.textLayers.length >= 2) return s;
+                    const layer: TextLayer = {
+                        id: crypto.randomUUID(),
+                        text: s.textLayers.length === 0 ? "Sarah & Tom" : "June 14, 2026",
+                        font: "Inter",
+                        color: "#1f2a24",
+                        size: 22,
+                        x: 50,
+                        y: s.textLayers.length === 0 ? 78 : 88,
+                    };
+                    return { textLayers: [...s.textLayers, layer] };
+                }),
+            updateTextLayer: (id, patch) =>
+                set((s) => ({
+                    textLayers: s.textLayers.map((l) => (l.id === id ? { ...l, ...patch } : l)),
+                })),
+            removeTextLayer: (id) =>
+                set((s) => ({ textLayers: s.textLayers.filter((l) => l.id !== id) })),
+            setWhiteBorder: (v) => set({ whiteBorder: v }),
+            addReferenceImage: (url, role = "Subject") =>
+                set((s) => {
+                    if (s.referenceImages.length >= MAX_REFERENCES) return s;
+                    const id =
+                        typeof crypto !== "undefined" && "randomUUID" in crypto
+                            ? crypto.randomUUID()
+                            : `${Date.now()}-${Math.random()}`;
+                    return { referenceImages: [...s.referenceImages, { id, url, role }] };
+                }),
+            updateReferenceImageRole: (id, role) =>
+                set((s) => ({
+                    referenceImages: s.referenceImages.map((r) =>
+                        r.id === id ? { ...r, role } : r,
+                    ),
+                })),
+            removeReferenceImage: (id) =>
+                set((s) => ({ referenceImages: s.referenceImages.filter((r) => r.id !== id) })),
+            clearReferenceImages: () => set({ referenceImages: [] }),
+            reset: () => set({ ...initial, imageTransform: { ...DEFAULT_TRANSFORM } }),
         }),
-    updateTextLayer: (id, patch) =>
-        set((s) => ({
-            textLayers: s.textLayers.map((l) => (l.id === id ? { ...l, ...patch } : l)),
-        })),
-    removeTextLayer: (id) =>
-        set((s) => ({ textLayers: s.textLayers.filter((l) => l.id !== id) })),
-    setWhiteBorder: (v) => set({ whiteBorder: v }),
-    reset: () => set({ ...initial }),
-}));
+        {
+            name: "lovable-studio-v1",
+            version: 1,
+            storage: createJSONStorage(() =>
+                typeof window !== "undefined"
+                    ? window.localStorage
+                    : ({
+                          getItem: () => null,
+                          setItem: () => {},
+                          removeItem: () => {},
+                      } as Storage),
+            ),
+            partialize: (s) => ({
+                container: s.container,
+                volume: s.volume,
+                prompt: s.prompt,
+                stylePreset: s.stylePreset,
+                imageUrl: s.imageUrl,
+                referenceImages: s.referenceImages,
+                shape: s.shape,
+                textLayers: s.textLayers,
+                whiteBorder: s.whiteBorder,
+                imageTransform: s.imageTransform,
+            }),
+        },
+    ),
+);
+
+export const MAX_REFERENCE_IMAGES = MAX_REFERENCES;
 
 export const CONTAINER_CHOICES = [
   { id: "wine",      label: "Wine bottle",    emoji: "🍷", tagline: "Classic still wine" },
