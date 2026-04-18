@@ -144,6 +144,7 @@ function CustomizePage() {
           size={360}
           showDimensions
           showScaleHint
+          imageTransform={s.imageTransform}
         />
       </section>
     </div>
