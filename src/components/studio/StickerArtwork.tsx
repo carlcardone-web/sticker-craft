@@ -1,4 +1,4 @@
-import { getLabelDimensions, type StickerShape, type TextLayer } from "@/lib/studio-store";
+import { getLabelDimensions, type StickerShape, type TextLayer, type ImageTransform } from "@/lib/studio-store";
 
 type Props = {
     imageUrl: string | null;
@@ -10,6 +10,7 @@ type Props = {
     size?: number; // longest-edge px budget
     showDimensions?: boolean;
     showScaleHint?: boolean;
+    imageTransform?: ImageTransform;
     className?: string;
 };
 
