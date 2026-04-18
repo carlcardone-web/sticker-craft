@@ -372,7 +372,7 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
           </div>
 
           {l.aiImageUrl && (
-            <div className="rounded-xl border border-border bg-[repeating-conic-gradient(#f3f4f3_0%_25%,#ffffff_0%_50%)] [background-size:12px_12px] p-2 flex items-center justify-center">
+            <div className="rounded-xl border border-border p-2 flex items-center justify-center">
               <img src={l.aiImageUrl} alt="Generated text" className="max-h-20 object-contain" />
             </div>
           )}
