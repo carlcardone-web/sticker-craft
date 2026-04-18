@@ -69,6 +69,7 @@ function PreviewPage() {
                 container={s.container}
                 volume={s.volume}
                 size={active.stickerSize}
+                imageTransform={s.imageTransform}
               />
             </div>
           </div>
