@@ -121,6 +121,10 @@ export function StickerArtwork({
                   alt="Sticker artwork"
                   className="h-full w-full object-cover"
                   draggable={false}
+                  style={{
+                    transform: `translate(${t.offsetX}%, ${t.offsetY}%) scale(${t.scale})`,
+                    transformOrigin: "center",
+                  }}
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground p-4 text-center">
