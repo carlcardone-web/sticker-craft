@@ -212,12 +212,12 @@ function CreatePage() {
               </p>
               <div className="grid grid-cols-3 gap-3">
                 {referenceImages.map((ref, i) => (
-                  <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
+                  <div key={ref.id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
                     <div className="relative aspect-square">
                       <img src={ref.url} alt={`Reference ${i + 1}`} className="h-full w-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => removeReference(i)}
+                        onClick={() => removeReferenceImage(ref.id)}
                         className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-background/90 border border-border flex items-center justify-center shadow-sm hover:bg-background"
                         aria-label="Remove reference"
                       >
@@ -228,7 +228,7 @@ function CreatePage() {
                       <input
                         type="text"
                         value={ref.role}
-                        onChange={(e) => updateReferenceRole(i, e.target.value)}
+                        onChange={(e) => updateReferenceImageRole(ref.id, e.target.value)}
                         placeholder="Role (e.g. Subject)"
                         maxLength={60}
                         list={`role-presets-${i}`}
@@ -242,7 +242,7 @@ function CreatePage() {
                           <button
                             key={p}
                             type="button"
-                            onClick={() => updateReferenceRole(i, p)}
+                            onClick={() => updateReferenceImageRole(ref.id, p)}
                             className={[
                               "text-[10px] px-1.5 py-0.5 rounded-full transition-colors",
                               ref.role.toLowerCase() === p.toLowerCase()
