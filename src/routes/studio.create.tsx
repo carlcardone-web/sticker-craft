@@ -134,6 +134,7 @@ function CreatePage() {
   }, [container, volume, navigate]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"describe" | "templates">("describe");
 
   const MAX_REFS = 3;
   const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
