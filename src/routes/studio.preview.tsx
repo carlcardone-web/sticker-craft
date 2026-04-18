@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import { useStudio } from "@/lib/studio-store";
+import { useStudio, getLabelDimensions, type StickerShape } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import wineImg from "@/assets/mockups/wine-bottle.jpg";
@@ -9,6 +9,17 @@ import sodaImg from "@/assets/mockups/soda-can.jpg";
 import slimImg from "@/assets/mockups/slim-can.jpg";
 import waterImg from "@/assets/mockups/water-bottle.jpg";
 import jarImg from "@/assets/mockups/mason-jar.jpg";
+
+function LabelDimsCaption({ container, volume, shape }: { container: string | null; volume: string | null; shape: StickerShape }) {
+  const dims = getLabelDimensions(container, volume);
+  if (!dims) return null;
+  const isFixedSquare = shape === "circle" || shape === "square" || shape === "rounded";
+  const w = isFixedSquare ? Math.min(dims.w, dims.h) : dims.w;
+  const h = isFixedSquare ? Math.min(dims.w, dims.h) : dims.h;
+  return (
+    <p className="mt-3 text-center text-xs text-muted-foreground tabular-nums">Label size: {w} × {h} cm</p>
+  );
+}
 
 export const Route = createFileRoute("/studio/preview")({
   head: () => ({

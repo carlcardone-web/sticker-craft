@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useStudio } from "@/lib/studio-store";
+import { useStudio, getLabelDimensions, CONTAINER_CHOICES, SHAPE_CHOICES } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { ArrowLeft, Check, Download, Package, Truck } from "lucide-react";
 
@@ -48,10 +48,17 @@ function CheckoutPage() {
     setDownloaded(true);
   }
 
+  const dims = getLabelDimensions(s.container, s.volume);
+  const isFixedSquare = s.shape === "circle" || s.shape === "square" || s.shape === "rounded";
+  const labelW = dims ? (isFixedSquare ? Math.min(dims.w, dims.h) : dims.w) : null;
+  const labelH = dims ? (isFixedSquare ? Math.min(dims.w, dims.h) : dims.h) : null;
+  const containerInfo = CONTAINER_CHOICES.find((c) => c.id === s.container);
+  const shapeInfo = SHAPE_CHOICES.find((sh) => sh.id === s.shape);
+
   return (
     <div className="grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12">
       <section className="rounded-3xl bg-card p-8 shadow-soft border border-border/60 flex flex-col items-center justify-center">
-        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} container={s.container} volume={s.volume} size={300} />
+        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} container={s.container} volume={s.volume} size={300} showDimensions />
         <p className="mt-6 text-sm text-muted-foreground">Your sticker is ready.</p>
       </section>
 
