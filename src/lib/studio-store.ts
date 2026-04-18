@@ -3,14 +3,23 @@ import { persist, createJSONStorage } from "zustand/middleware";
 
 export type StickerShape = "rectangle" | "oval" | "circle" | "diecut" | "square" | "rounded";
 
+export type TextLayerReference = { id: string; url: string; role: string };
+
 export type TextLayer = {
     id: string;
+    mode: "text" | "ai";
     text: string;
     font: string;
     color: string;
     size: number; // px
     x: number; // 0-100 %
     y: number;
+    // AI-mode fields
+    aiPrompt?: string;
+    aiImageUrl?: string | null;
+    aiReferences?: TextLayerReference[];
+    aiWidth?: number; // % of sticker width
+    rotation?: number; // degrees
 };
 
 export type ImageTransform = { scale: number; offsetX: number; offsetY: number };
@@ -88,20 +97,68 @@ export const useStudio = create<StudioState>()(
                 set((s) => ({ imageTransform: { ...s.imageTransform, ...patch } })),
             resetImageTransform: () => set({ imageTransform: { ...DEFAULT_TRANSFORM } }),
             setShape: (s) => set({ shape: s }),
-            addTextLayer: () =>
+    addTextLayer: () =>
                 set((s) => {
                     if (s.textLayers.length >= 2) return s;
+                    const uid = () =>
+                        typeof crypto !== "undefined" && "randomUUID" in crypto
+                            ? crypto.randomUUID()
+                            : `${Date.now()}-${Math.random()}`;
                     const layer: TextLayer = {
-                        id: crypto.randomUUID(),
+                        id: uid(),
+                        mode: "text",
                         text: s.textLayers.length === 0 ? "Sarah & Tom" : "June 14, 2026",
                         font: "Inter",
                         color: "#1f2a24",
                         size: 22,
                         x: 50,
                         y: s.textLayers.length === 0 ? 78 : 88,
+                        aiPrompt: "",
+                        aiImageUrl: null,
+                        aiReferences: [],
+                        aiWidth: 60,
+                        rotation: 0,
                     };
                     return { textLayers: [...s.textLayers, layer] };
                 }),
+            setTextLayerAiImage: (id: string, url: string | null) =>
+                set((s) => ({
+                    textLayers: s.textLayers.map((l) => (l.id === id ? { ...l, aiImageUrl: url } : l)),
+                })),
+            addTextLayerReference: (id: string, url: string, role = "Font style") =>
+                set((s) => ({
+                    textLayers: s.textLayers.map((l) => {
+                        if (l.id !== id) return l;
+                        const refs = l.aiReferences ?? [];
+                        if (refs.length >= 2) return l;
+                        const refId =
+                            typeof crypto !== "undefined" && "randomUUID" in crypto
+                                ? crypto.randomUUID()
+                                : `${Date.now()}-${Math.random()}`;
+                        return { ...l, aiReferences: [...refs, { id: refId, url, role }] };
+                    }),
+                })),
+            updateTextLayerReference: (id: string, refId: string, role: string) =>
+                set((s) => ({
+                    textLayers: s.textLayers.map((l) =>
+                        l.id === id
+                            ? {
+                                  ...l,
+                                  aiReferences: (l.aiReferences ?? []).map((r) =>
+                                      r.id === refId ? { ...r, role } : r,
+                                  ),
+                              }
+                            : l,
+                    ),
+                })),
+            removeTextLayerReference: (id: string, refId: string) =>
+                set((s) => ({
+                    textLayers: s.textLayers.map((l) =>
+                        l.id === id
+                            ? { ...l, aiReferences: (l.aiReferences ?? []).filter((r) => r.id !== refId) }
+                            : l,
+                    ),
+                })),
             updateTextLayer: (id, patch) =>
                 set((s) => ({
                     textLayers: s.textLayers.map((l) => (l.id === id ? { ...l, ...patch } : l)),
