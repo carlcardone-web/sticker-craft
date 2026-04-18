@@ -9,16 +9,16 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  FONT_CHOICES,
   CONTAINER_CHOICES,
   getLabelDimensions,
   useStudio,
   type TextLayer,
 } from "@/lib/studio-store";
+import { FONT_LIBRARY, ensureFontLoaded, detectFontFormat, getFontFamilyCSS, type FontCategory } from "@/lib/fonts";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { editStickerWithText } from "@/server/edit-sticker-with-text";
 import {
-  ArrowLeft, ArrowRight, Plus, Trash2, ImagePlus, X, Sparkles, RefreshCw,
+  ArrowLeft, ArrowRight, Plus, Trash2, ImagePlus, X, Sparkles, RefreshCw, Upload,
 } from "lucide-react";
 
 export const Route = createFileRoute("/studio/customize")({
