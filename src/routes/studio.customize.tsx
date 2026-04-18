@@ -16,7 +16,7 @@ import {
   type TextLayer,
 } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
-import { generateTextArt } from "@/server/generate-text-art";
+import { editStickerWithText } from "@/server/edit-sticker-with-text";
 import {
   ArrowLeft, ArrowRight, Plus, Trash2, ImagePlus, X, Sparkles, RefreshCw,
 } from "lucide-react";
@@ -185,8 +185,6 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
   const mode = l.mode ?? "text";
   const aiPrompt = l.aiPrompt ?? "";
   const aiRefs = l.aiReferences ?? [];
-  const aiWidth = l.aiWidth ?? 60;
-  const rotation = l.rotation ?? 0;
 
   function onRefUpload(files: FileList | null) {
     if (!files || files.length === 0) return;
@@ -209,6 +207,10 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
   }
 
   async function handleGenerate() {
+    if (!s.imageUrl) {
+      toast.error("Generate the artwork on the previous step first.");
+      return;
+    }
     if (!l.text.trim()) {
       toast.error("Add the phrase to render first.");
       return;
@@ -219,16 +221,21 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
     }
     setGenerating(true);
     try {
-      const { imageUrl } = await generateTextArt({
+      const { imageUrl } = await editStickerWithText({
         data: {
+          baseImageUrl: s.imageUrl,
           text: l.text,
           prompt: aiPrompt,
           references: aiRefs.map((r) => ({ url: r.url, role: r.role })),
+          shape: s.shape,
+          container: s.container,
+          volume: s.volume,
           color: l.color,
         },
       });
-      s.setTextLayerAiImage(l.id, imageUrl);
-      toast.success("Text generated");
+      s.setImage(imageUrl);
+      s.removeTextLayer(l.id);
+      toast.success("Text added to your artwork");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Generation failed");
     } finally {
@@ -349,60 +356,27 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <Button onClick={handleGenerate} disabled={generating} size="sm" className="rounded-full flex-1 bg-gradient-sage text-primary-foreground hover:opacity-95">
-              {generating ? (
-                <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</>
-              ) : l.aiImageUrl ? (
-                <><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate</>
-              ) : (
-                <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate text</>
-              )}
-            </Button>
-            {l.aiImageUrl && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => s.setTextLayerAiImage(l.id, null)}
-                className="rounded-full"
-              >
-                Clear
-              </Button>
+          {!s.imageUrl && (
+            <p className="text-[11px] text-muted-foreground italic">
+              Generate the artwork on the previous step first, then come back to bake text into it.
+            </p>
+          )}
+
+          <Button
+            onClick={handleGenerate}
+            disabled={generating || !s.imageUrl}
+            size="sm"
+            className="rounded-full w-full bg-gradient-sage text-primary-foreground hover:opacity-95"
+          >
+            {generating ? (
+              <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Baking text into artwork…</>
+            ) : (
+              <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Bake text into artwork</>
             )}
-          </div>
-
-          {l.aiImageUrl && (
-            <div className="rounded-xl border border-border p-2 flex items-center justify-center">
-              <img src={l.aiImageUrl} alt="Generated text" className="max-h-20 object-contain" />
-            </div>
-          )}
-
-          {l.aiImageUrl && (
-            <div className="space-y-2">
-              <div>
-                <Label className="text-xs text-muted-foreground">Size {aiWidth}%</Label>
-                <Slider
-                  value={[aiWidth]}
-                  min={20}
-                  max={100}
-                  step={1}
-                  onValueChange={(v) => s.updateTextLayer(l.id, { aiWidth: v[0] })}
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Rotation {rotation}°</Label>
-                <Slider
-                  value={[rotation]}
-                  min={-45}
-                  max={45}
-                  step={1}
-                  onValueChange={(v) => s.updateTextLayer(l.id, { rotation: v[0] })}
-                  className="mt-2"
-                />
-              </div>
-            </div>
-          )}
+          </Button>
+          <p className="text-[11px] text-muted-foreground">
+            The text will be drawn directly into your sticker so it matches the style perfectly.
+          </p>
         </div>
       )}
 

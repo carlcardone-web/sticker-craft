@@ -132,25 +132,7 @@ export function StickerArtwork({
                 </div>
               )}
               {textLayers.map((l) => {
-                if (l.mode === "ai" && l.aiImageUrl) {
-                  const w = l.aiWidth ?? 60;
-                  const rot = l.rotation ?? 0;
-                  return (
-                    <img
-                      key={l.id}
-                      src={l.aiImageUrl}
-                      alt={l.text}
-                      draggable={false}
-                      className="absolute pointer-events-none select-none object-contain"
-                      style={{
-                        left: `${l.x}%`,
-                        top: `${l.y}%`,
-                        width: `${w}%`,
-                        transform: `translate(-50%, -50%) rotate(${rot}deg)`,
-                      }}
-                    />
-                  );
-                }
+                if (l.mode === "ai") return null;
                 return (
                   <span
                     key={l.id}
