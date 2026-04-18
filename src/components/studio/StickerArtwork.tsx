@@ -131,23 +131,44 @@ export function StickerArtwork({
                   Your label will appear here
                 </div>
               )}
-              {textLayers.map((l) => (
-                <span
-                  key={l.id}
-                  className="absolute -translate-x-1/2 -translate-y-1/2 select-none px-2 text-center leading-tight"
-                  style={{
-                    left: `${l.x}%`,
-                    top: `${l.y}%`,
-                    fontFamily: l.font,
-                    color: l.color,
-                    fontSize: l.size,
-                    textShadow: "0 1px 2px rgba(255,255,255,0.4)",
-                    maxWidth: "90%",
-                  }}
-                >
-                  {l.text}
-                </span>
-              ))}
+              {textLayers.map((l) => {
+                if (l.mode === "ai" && l.aiImageUrl) {
+                  const w = l.aiWidth ?? 60;
+                  const rot = l.rotation ?? 0;
+                  return (
+                    <img
+                      key={l.id}
+                      src={l.aiImageUrl}
+                      alt={l.text}
+                      draggable={false}
+                      className="absolute pointer-events-none select-none object-contain"
+                      style={{
+                        left: `${l.x}%`,
+                        top: `${l.y}%`,
+                        width: `${w}%`,
+                        transform: `translate(-50%, -50%) rotate(${rot}deg)`,
+                      }}
+                    />
+                  );
+                }
+                return (
+                  <span
+                    key={l.id}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 select-none px-2 text-center leading-tight"
+                    style={{
+                      left: `${l.x}%`,
+                      top: `${l.y}%`,
+                      fontFamily: l.font,
+                      color: l.color,
+                      fontSize: l.size,
+                      textShadow: "0 1px 2px rgba(255,255,255,0.4)",
+                      maxWidth: "90%",
+                    }}
+                  >
+                    {l.text}
+                  </span>
+                );
+              })}
             </div>
           </div>
         </div>

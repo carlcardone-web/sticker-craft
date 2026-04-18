@@ -1,18 +1,25 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   FONT_CHOICES,
   CONTAINER_CHOICES,
   getLabelDimensions,
   useStudio,
+  type TextLayer,
 } from "@/lib/studio-store";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
-import { ArrowLeft, ArrowRight, Plus, Trash2 } from "lucide-react";
+import { generateTextArt } from "@/server/generate-text-art";
+import {
+  ArrowLeft, ArrowRight, Plus, Trash2, ImagePlus, X, Sparkles, RefreshCw,
+} from "lucide-react";
 
 export const Route = createFileRoute("/studio/customize")({
   head: () => ({
@@ -23,6 +30,19 @@ export const Route = createFileRoute("/studio/customize")({
   }),
   component: CustomizePage,
 });
+
+const STYLE_CHIPS = [
+  "Flowing calligraphy",
+  "Bold serif",
+  "Hand-painted",
+  "Vintage signpainter",
+  "Neon glow",
+  "Gold foil",
+  "Brush script",
+  "Engraved",
+];
+
+const TEXT_REF_ROLES = ["Font style", "Color palette", "Mood"];
 
 function CustomizePage() {
   const s = useStudio();
@@ -121,52 +141,12 @@ function CustomizePage() {
           </div>
           {s.textLayers.length === 0 && (
             <p className="text-sm text-muted-foreground rounded-2xl border border-dashed border-border p-4 text-center">
-              Add up to 2 text layers — names, dates, anything.
+              Add up to 2 text layers — type or generate them with AI.
             </p>
           )}
           <div className="space-y-3">
             {s.textLayers.map((l) => (
-              <div key={l.id} className="rounded-2xl bg-card border border-border/60 p-4 space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={l.text}
-                    onChange={(e) => s.updateTextLayer(l.id, { text: e.target.value })}
-                    className="rounded-xl"
-                  />
-                  <Button variant="ghost" size="icon" onClick={() => s.removeTextLayer(l.id)} className="rounded-xl shrink-0">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <select
-                    value={l.font}
-                    onChange={(e) => s.updateTextLayer(l.id, { font: e.target.value })}
-                    className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    {FONT_CHOICES.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
-                  </select>
-                  <input
-                    type="color"
-                    value={l.color}
-                    onChange={(e) => s.updateTextLayer(l.id, { color: e.target.value })}
-                    className="rounded-xl border border-input h-9 w-full bg-background cursor-pointer"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs text-muted-foreground">Size {l.size}px</Label>
-                  <Slider value={[l.size]} min={10} max={48} step={1} onValueChange={(v) => s.updateTextLayer(l.id, { size: v[0] })} className="mt-2" />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Horizontal</Label>
-                    <Slider value={[l.x]} min={0} max={100} step={1} onValueChange={(v) => s.updateTextLayer(l.id, { x: v[0] })} className="mt-2" />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Vertical</Label>
-                    <Slider value={[l.y]} min={0} max={100} step={1} onValueChange={(v) => s.updateTextLayer(l.id, { y: v[0] })} className="mt-2" />
-                  </div>
-                </div>
-              </div>
+              <TextLayerCard key={l.id} layer={l} />
             ))}
           </div>
         </section>
@@ -195,6 +175,247 @@ function CustomizePage() {
           imageTransform={s.imageTransform}
         />
       </section>
+    </div>
+  );
+}
+
+function TextLayerCard({ layer: l }: { layer: TextLayer }) {
+  const s = useStudio();
+  const [generating, setGenerating] = useState(false);
+  const mode = l.mode ?? "text";
+  const aiPrompt = l.aiPrompt ?? "";
+  const aiRefs = l.aiReferences ?? [];
+  const aiWidth = l.aiWidth ?? 60;
+  const rotation = l.rotation ?? 0;
+
+  function onRefUpload(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const remaining = 2 - aiRefs.length;
+    if (remaining <= 0) {
+      toast.error("Up to 2 references per text layer.");
+      return;
+    }
+    Array.from(files).slice(0, remaining).forEach((file) => {
+      if (file.size > 6 * 1024 * 1024) {
+        toast.error(`${file.name} is over 6MB and was skipped.`);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        s.addTextLayerReference(l.id, reader.result as string, "Font style");
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleGenerate() {
+    if (!l.text.trim()) {
+      toast.error("Add the phrase to render first.");
+      return;
+    }
+    if (!aiPrompt.trim()) {
+      toast.error("Describe the style you want.");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const { imageUrl } = await generateTextArt({
+        data: {
+          text: l.text,
+          prompt: aiPrompt,
+          references: aiRefs.map((r) => ({ url: r.url, role: r.role })),
+          color: l.color,
+        },
+      });
+      s.setTextLayerAiImage(l.id, imageUrl);
+      toast.success("Text generated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Generation failed");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-card border border-border/60 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2">
+        <Tabs value={mode} onValueChange={(v) => s.updateTextLayer(l.id, { mode: v as "text" | "ai" })} className="flex-1">
+          <TabsList className="bg-muted/60 p-0.5 rounded-full h-auto w-full grid grid-cols-2">
+            <TabsTrigger value="text" className="rounded-full px-3 py-1 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              Type text
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="rounded-full px-3 py-1 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Sparkles className="h-3 w-3 mr-1" /> AI text
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        <Button variant="ghost" size="icon" onClick={() => s.removeTextLayer(l.id)} className="rounded-xl shrink-0">
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <Input
+        value={l.text}
+        onChange={(e) => s.updateTextLayer(l.id, { text: e.target.value })}
+        className="rounded-xl"
+        placeholder="The phrase to render"
+      />
+
+      {mode === "text" ? (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={l.font}
+              onChange={(e) => s.updateTextLayer(l.id, { font: e.target.value })}
+              className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
+            >
+              {FONT_CHOICES.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
+            </select>
+            <input
+              type="color"
+              value={l.color}
+              onChange={(e) => s.updateTextLayer(l.id, { color: e.target.value })}
+              className="rounded-xl border border-input h-9 w-full bg-background cursor-pointer"
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Size {l.size}px</Label>
+            <Slider value={[l.size]} min={10} max={48} step={1} onValueChange={(v) => s.updateTextLayer(l.id, { size: v[0] })} className="mt-2" />
+          </div>
+        </>
+      ) : (
+        <div className="space-y-3">
+          <Textarea
+            value={aiPrompt}
+            onChange={(e) => s.updateTextLayer(l.id, { aiPrompt: e.target.value })}
+            placeholder="e.g. flowing gold calligraphy with elegant flourishes"
+            className="rounded-xl min-h-20 text-sm"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {STYLE_CHIPS.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => {
+                  const next = aiPrompt ? `${aiPrompt}, ${chip.toLowerCase()}` : chip;
+                  s.updateTextLayer(l.id, { aiPrompt: next });
+                }}
+                className="text-[11px] px-2.5 py-1 rounded-full bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              >
+                {chip}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">
+              References (optional, up to 2)
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {aiRefs.map((r, i) => (
+                <div key={r.id} className="rounded-xl border border-border bg-card overflow-hidden">
+                  <div className="relative aspect-square">
+                    <img src={r.url} alt={`ref ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => s.removeTextLayerReference(l.id, r.id)}
+                      className="absolute top-1 right-1 h-5 w-5 rounded-full bg-background/90 border border-border flex items-center justify-center"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <select
+                    value={r.role}
+                    onChange={(e) => s.updateTextLayerReference(l.id, r.id, e.target.value)}
+                    className="w-full text-[10px] px-1 py-1 bg-muted/60 border-t border-border outline-none"
+                  >
+                    {TEXT_REF_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
+                  </select>
+                </div>
+              ))}
+              {aiRefs.length < 2 && (
+                <label className="aspect-square flex flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => { onRefUpload(e.target.files); e.target.value = ""; }}
+                  />
+                  <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">Add</span>
+                </label>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button onClick={handleGenerate} disabled={generating} size="sm" className="rounded-full flex-1 bg-gradient-sage text-primary-foreground hover:opacity-95">
+              {generating ? (
+                <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Generating…</>
+              ) : l.aiImageUrl ? (
+                <><RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Regenerate</>
+              ) : (
+                <><Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate text</>
+              )}
+            </Button>
+            {l.aiImageUrl && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => s.setTextLayerAiImage(l.id, null)}
+                className="rounded-full"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {l.aiImageUrl && (
+            <div className="rounded-xl border border-border bg-[repeating-conic-gradient(#f3f4f3_0%_25%,#ffffff_0%_50%)] [background-size:12px_12px] p-2 flex items-center justify-center">
+              <img src={l.aiImageUrl} alt="Generated text" className="max-h-20 object-contain" />
+            </div>
+          )}
+
+          {l.aiImageUrl && (
+            <div className="space-y-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Size {aiWidth}%</Label>
+                <Slider
+                  value={[aiWidth]}
+                  min={20}
+                  max={100}
+                  step={1}
+                  onValueChange={(v) => s.updateTextLayer(l.id, { aiWidth: v[0] })}
+                  className="mt-2"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Rotation {rotation}°</Label>
+                <Slider
+                  value={[rotation]}
+                  min={-45}
+                  max={45}
+                  step={1}
+                  onValueChange={(v) => s.updateTextLayer(l.id, { rotation: v[0] })}
+                  className="mt-2"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <Label className="text-xs text-muted-foreground">Horizontal</Label>
+          <Slider value={[l.x]} min={0} max={100} step={1} onValueChange={(v) => s.updateTextLayer(l.id, { x: v[0] })} className="mt-2" />
+        </div>
+        <div>
+          <Label className="text-xs text-muted-foreground">Vertical</Label>
+          <Slider value={[l.y]} min={0} max={100} step={1} onValueChange={(v) => s.updateTextLayer(l.id, { y: v[0] })} className="mt-2" />
+        </div>
+      </div>
     </div>
   );
 }
