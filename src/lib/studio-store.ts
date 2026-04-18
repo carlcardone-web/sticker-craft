@@ -63,13 +63,6 @@ export type StudioState = {
     clearReferenceImages: () => void;
     reset: () => void;
 };
-    resetImageTransform: () => void;
-    addReferenceImage: (url: string, role?: string) => void;
-    updateReferenceImageRole: (id: string, role: string) => void;
-    removeReferenceImage: (id: string) => void;
-    clearReferenceImages: () => void;
-    reset: () => void;
-};
 
 const DEFAULT_TRANSFORM: ImageTransform = { scale: 1, offsetX: 0, offsetY: 0 };
 
