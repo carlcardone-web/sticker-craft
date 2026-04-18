@@ -58,7 +58,7 @@ function CheckoutPage() {
   return (
     <div className="grid lg:grid-cols-[1fr_1fr] gap-8 lg:gap-12">
       <section className="rounded-3xl bg-card p-8 shadow-soft border border-border/60 flex flex-col items-center justify-center">
-        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} container={s.container} volume={s.volume} size={300} showDimensions />
+        <StickerArtwork imageUrl={s.imageUrl} shape={s.shape} textLayers={s.textLayers} whiteBorder={s.whiteBorder} container={s.container} volume={s.volume} size={300} showDimensions imageTransform={s.imageTransform} />
         <p className="mt-6 text-sm text-muted-foreground">Your sticker is ready.</p>
       </section>
 
