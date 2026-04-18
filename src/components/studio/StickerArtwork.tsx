@@ -62,6 +62,12 @@ export function StickerArtwork({
     imageTransform,
     className = "",
 }: Props) {
+    const customFonts = useStudio((s) => s.customFonts);
+    useEffect(() => { injectCustomFonts(customFonts); }, [customFonts]);
+    useEffect(() => {
+        textLayers.forEach((l) => ensureFontLoaded(l.font));
+    }, [textLayers]);
+
     const dims = getLabelDimensions(container, volume);
     const t = imageTransform ?? { scale: 1, offsetX: 0, offsetY: 0 };
 
