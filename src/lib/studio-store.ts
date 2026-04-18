@@ -63,7 +63,10 @@ export const useStudio = create<StudioState>((set) => ({
     setVolume: (v) => set({ volume: v }),
     setPrompt: (v) => set({ prompt: v }),
     setStylePreset: (v) => set({ stylePreset: v }),
-    setImage: (url) => set({ imageUrl: url }),
+    setImage: (url) => set({ imageUrl: url, imageTransform: { ...DEFAULT_TRANSFORM } }),
+    setImageTransform: (patch) =>
+        set((s) => ({ imageTransform: { ...s.imageTransform, ...patch } })),
+    resetImageTransform: () => set({ imageTransform: { ...DEFAULT_TRANSFORM } }),
     setShape: (s) => set({ shape: s }),
     addTextLayer: () =>
         set((s) => {
