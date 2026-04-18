@@ -282,14 +282,7 @@ export const STYLE_PRESETS = [
   { id: "modern-label",    label: "Modern Label",    description: "Clean flat design — minimal, contemporary" },
 ];
 
-export const FONT_CHOICES = [
-    "Inter",
-    "Georgia",
-    "Playfair Display",
-    "Courier New",
-    "Verdana",
-    "Brush Script MT",
-];
+// FONT_CHOICES removed — use FONT_LIBRARY from "@/lib/fonts" instead.
 
 export const STEPS = [
   { id: 1, slug: "bottle",    label: "Bottle",    path: "/studio/bottle" },
