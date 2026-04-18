@@ -132,15 +132,18 @@ export const useStudio = create<StudioState>()(
         {
             name: "lovable-studio-v1",
             version: 1,
-            storage: createJSONStorage(() =>
-                typeof window !== "undefined"
-                    ? window.localStorage
-                    : ({
-                          getItem: () => null,
-                          setItem: () => {},
-                          removeItem: () => {},
-                      } as Storage),
-            ),
+            storage: createJSONStorage(() => {
+                if (typeof window !== "undefined") return window.localStorage;
+                const noop: Storage = {
+                    length: 0,
+                    clear: () => {},
+                    getItem: () => null,
+                    key: () => null,
+                    removeItem: () => {},
+                    setItem: () => {},
+                };
+                return noop;
+            }),
             partialize: (s) => ({
                 container: s.container,
                 volume: s.volume,
