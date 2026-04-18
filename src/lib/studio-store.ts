@@ -26,6 +26,14 @@ export type ImageTransform = { scale: number; offsetX: number; offsetY: number }
 
 export type ReferenceImage = { id: string; url: string; role: string };
 
+export type CustomFont = {
+    id: string;
+    name: string;
+    dataUrl: string;
+    /** CSS font format hint, e.g. "truetype", "opentype", "woff", "woff2" */
+    format: string;
+};
+
 export type StudioState = {
     // Step 0
     container: string | null;
