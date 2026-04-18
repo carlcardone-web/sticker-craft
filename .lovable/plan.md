@@ -1,89 +1,52 @@
 
+
 ## Goal
-Turn the **Text layers** panel on `/studio/customize` into an AI-assisted text studio: instead of typing flat text and picking from a dropdown of system fonts, the user can describe a style ("hand-painted gold script for a wedding"), optionally attach references (font sample, color palette, mood), and get an **AI-generated text image** that drops onto the sticker as a draggable, scalable, framable layer — exactly like the artwork already works.
+Change the **AI text** section in `/studio/customize` so it **regenerates the main artwork** (replacing the existing sticker image) by combining the previous image + the user's text prompt + references — instead of generating a separate transparent PNG that floats on top. This kills the checkered preview entirely (there's no transparent image anymore) and matches what the user actually wants: text *baked into* the design, consistent with the rest of the artwork.
 
-## Design
+## Diagnosis
 
-Each text layer becomes a **hybrid layer**: it can either be a normal text node (current behaviour, preserved) or an **AI text image** (new). User picks per-layer.
+Two issues to fix together:
 
-```
-Text layer card
-├─ Mode toggle:  [ Type text ]  [ AI text ]
-├─ If "Type text"  → existing text/font/color/size controls
-└─ If "AI text"
-   ├─ Prompt: "Sarah & Tom in flowing gold calligraphy"
-   ├─ Content text (what the rendered word(s) should say)
-   ├─ Style chips: Calligraphy · Bold serif · Hand-painted · Vintage · Neon · Gold foil
-   ├─ Reference photos (up to 2 per layer): Font style · Color palette · Mood
-   ├─ [Generate]  →  returns transparent PNG
-   ├─ Position (x/y), Size (scale), Rotation sliders
-   └─ Preview thumbnail + Regenerate
-```
-
-The AI-rendered text is stored as an image URL on the layer and rendered as an `<img>` overlay inside `StickerArtwork.tsx`, so it auto-shows on Customize, Preview, and Checkout (just like the main artwork). User drags/sizes it via sliders.
+1. **Checkered pattern**: It comes from the browser's default rendering of any transparent PNG — the AI text PNG `<img>` shown in the side-panel preview block (`studio.customize.tsx`, the `<img src={l.aiImageUrl} …>` near line 376) and on the sticker overlay. As long as we keep generating standalone transparent text PNGs, the user will see this.
+2. **The request**: "use the extra detail shared by the user … to re-generate the image created in the previous step on Create — combining the current picture as a reference and the prompt for the new text as combined". So the model should receive the **current `imageUrl`** as an input image, plus the per-layer references, plus a prompt that says *"keep this artwork, integrate the phrase X in style Y"*. Output replaces `s.imageUrl`.
 
 ## Changes
 
-### 1. Store (`src/lib/studio-store.ts`)
-Extend `TextLayer`:
-```ts
-type TextLayer = {
-  id: string;
-  mode: "text" | "ai";              // NEW
-  text: string;                      // used for mode="text" + as the word the AI should render
-  font: string; color: string; size: number;
-  x: number; y: number;
-  // AI mode fields:
-  aiPrompt?: string;                 // style description
-  aiImageUrl?: string;               // generated transparent PNG
-  aiReferences?: ReferenceImage[];   // per-layer refs (max 2)
-  aiWidth?: number;                  // % of sticker width (default 60)
-  rotation?: number;                 // degrees (-180..180), default 0
-};
-```
-Default new layers to `mode: "text"` for backwards compatibility. Add actions: `setTextLayerAiImage(id, url)`, `addTextLayerReference(id, url, role)`, `updateTextLayerReference(id, refId, role)`, `removeTextLayerReference(id, refId)`.
+### 1. New server function `src/server/edit-sticker-with-text.ts`
+- Inputs: `{ baseImageUrl, text, prompt, references[], shape, container, volume, color? }`
+- Uses `google/gemini-3-pro-image-preview` (image-edit pattern) with the base image as the first `image_url` and the references after.
+- Prompt skeleton (one paragraph): *"Edit the provided sticker artwork (image 1) by integrating the exact phrase \"{text}\" into the design. Style for the lettering: {prompt}. Keep the existing composition, palette, subject matter, and overall mood unchanged — only add the lettering so it sits naturally as part of the design. Do not add unrelated elements. Honour the reference images for the assigned aspects: {role list}. Output a complete sticker matching the original aspect ratio."*
 
-Persist these new fields automatically (already covered by `partialize` of `textLayers`).
+### 2. Update store
+- Drop AI-text-as-overlay fields usage (we keep the type fields for backward-compat / persisted data, but stop reading them in render). 
+- Add `setImageFromTextEdit(url)` that calls `setImage(url)` (already resets `imageTransform`) — or reuse `setImage` directly.
+- Per-layer `aiImageUrl`, `aiWidth`, `rotation` become unused → remove their UI controls but leave the type optional for safety.
 
-### 2. New server function (`src/server/generate-text-art.ts`)
-Mirror of `generate-sticker.ts`, scoped to text:
-- Accepts `{ text, prompt, references, color? }`
-- Builds a prompt forcing **transparent background, single phrase rendered as decorative typography**, no extra elements
-- Calls the same `google/gemini-3-pro-image-preview` model with `modalities: ["image", "text"]`
-- Returns `{ imageUrl }`
+### 3. Rewrite the AI tab in `studio.customize.tsx`
+The card stays a **hybrid layer** with two tabs:
+- **Type text** (unchanged — overlay span)
+- **AI text** — *now phrased as "Bake into artwork"*:
+  - Phrase input (already there as `l.text`)
+  - Style description textarea + chips (kept)
+  - References uploader (kept) — roles: Font style · Color palette · Mood
+  - **Generate** button → calls `editStickerWithText` with current `s.imageUrl` + the layer's text/prompt/refs → on success, calls `s.setImage(newUrl)` and **deletes this AI text layer** (since the text is now baked into the main image, the overlay is meaningless). Toast: *"Text added to your artwork."*
+  - Disabled if no `s.imageUrl` yet — show helper: *"Generate the artwork on the previous step first, then come back here to bake text into it."*
+  - **Remove** the floating-preview thumbnail block (line 374-378) and the Size/Rotation sliders for AI text (lines 380-405). These are what showed the checkered transparent PNG.
 
-Prompt skeleton:
-> "Render the exact phrase \"{text}\" as decorative typography in the following style: {prompt}. Transparent background, no frame, no decoration outside the letters, crisp edges. Apply references for: {role list}."
+### 4. Cleanup in `StickerArtwork.tsx`
+Remove the `if (l.mode === "ai" && l.aiImageUrl)` branch (lines 134-153). All text layers render as `<span>` overlays again. AI-text users see their text in the main `<img>`. No transparent PNG ever rendered → no checkerboard anywhere.
 
-### 3. `StickerArtwork.tsx` rendering
-For each `TextLayer`:
-- If `mode === "ai" && aiImageUrl`: render `<img>` positioned at `(x,y)`, sized to `aiWidth%` of the sticker width, rotated by `rotation`, `pointer-events:none`, `object-contain`.
-- Else: existing `<span>` text rendering.
-
-### 4. Customize page UI (`src/routes/studio.customize.tsx`)
-Rewrite the text-layer card:
-- Mode toggle (Tabs/Segmented control)
-- "Type text" tab → keep current controls untouched
-- "AI text" tab → 
-  - `Input` for the **content** (the phrase to render — defaults to existing `text`)
-  - `Textarea` for **style description**
-  - Quick style chips that append to the prompt
-  - Compact reference uploader (reuses the same data-URL upload pattern as Create) with role picker (Font style / Color palette / Mood)
-  - **Generate** button → calls `generateTextArt` → stores `aiImageUrl`
-  - When `aiImageUrl` exists: show preview thumbnail + sliders for **Size** (`aiWidth`, 20-100%), **Rotation** (-45° to 45°), **Horizontal/Vertical position** (already exists)
-  - **Regenerate** button
-
-Keep the per-layer **Position** sliders shared between both modes so framing UX is consistent.
-
-### 5. Wiring
-- `customize.tsx` already passes `textLayers` to `StickerArtwork` — no change needed for downstream rendering.
-- `preview.tsx` and `checkout.tsx` already pass `textLayers` through — they'll pick up AI text automatically.
-- Reset on "Start over" — already covered by `reset()`.
+### 5. Persist behavior
+Because `setImage` already resets `imageTransform`, the regenerated artwork shows clean and re-framable. The user can re-run AI text multiple times (each call uses the now-current image as base), iteratively layering text edits.
 
 ## Out of scope
-- Animating text or live font preview before generation
-- Baking text images into the final exported PNG server-side (still composited via CSS at preview/checkout — same approach as artwork framing)
-- Sharing the create-page reference photos with text layers (kept separate so font/color refs don't pollute the main artwork)
+- Server-side compositing of overlay text (we removed the overlay path entirely)
+- Preserving the "type text" overlay across the regen (it remains a CSS overlay; only AI-text layers get baked in)
+- Undo of the bake (user can re-run Create to start fresh)
 
 ## Why this works
-The hybrid model preserves the simple "type and pick a font" path for users who want speed, while giving creative users an AI text generator that respects the same patterns they already know: prompt + references + roles + drag-to-position. Because the output is just an image layer, all existing scale/position/persistence plumbing applies — no new rendering pipeline, no checkout-flow changes.
+- The checkered pattern disappears because no transparent PNG is rendered anywhere.
+- The AI uses the *current* sticker as a true reference (image-to-image edit), so the resulting text matches the artwork's style, lighting, and palette — far better than overlaying a separately-generated typography PNG that never knew what the artwork looked like.
+- Per-layer references (Font style / Color palette / Mood) still steer the lettering treatment, so the user keeps creative control.
+- Iteration is natural: each "Generate" uses whatever the artwork is *now*, so users can refine in passes.
+
