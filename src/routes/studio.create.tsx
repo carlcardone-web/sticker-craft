@@ -94,10 +94,6 @@ const TEMPLATES: Template[] = [
   },
 ];
 
-const STYLE_LABEL_BY_ID: Record<string, string> = Object.fromEntries(
-  // populated below after STYLE_PRESETS import is available
-  [] as [string, string][],
-);
 
 const SHAPES: { id: StickerShape; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "circle", label: "Circle", Icon: Circle },
