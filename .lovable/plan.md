@@ -1,44 +1,47 @@
 
-## Goal
-Persist every studio decision (bottle/volume, prompt, references, generated image, shape, text layers, framing transform, white border) across step navigation and page refreshes so the user never loses work moving between Bottle → Create → Customize → Preview → Checkout.
+## What templates should do
 
-## Diagnosis
-`useStudio` (Zustand store in `src/lib/studio-store.ts`) is **in-memory only**. State survives client-side route transitions (since the store lives at module scope) but is **lost on refresh, tab reopen, or SSR hydration mismatch**. Additionally, the **reference photos** uploaded on `/studio/create` (with their roles) are held in *local component state* inside `studio.create.tsx` — they are not in the global store at all, so navigating away from Create and back loses them entirely. Same pattern likely applies to the prompt's `@mention` bindings.
+Treat each template as a **starter recipe** that pre-fills the Create form so the user can tweak instead of starting from a blank prompt. Clicking a template should:
+
+1. **Seed the prompt** with a real, editable description (e.g. "A botanical wreath of eucalyptus leaves and small white flowers framing a monogram, soft watercolor on cream").
+2. **Apply a matching style preset** (one of `STYLE_PRESETS` — watercolor, minimal, etc.).
+3. **Suggest a shape** appropriate for the occasion (e.g. monogram → circle, balloons → square).
+4. **NOT** generate or set a fake image. The user still hits **Generate** to produce the real artwork. The colored gradient on the tile becomes purely a visual mood hint, not the output.
+
+After clicking, the page scrolls/switches to the Describe tab so the user immediately sees the seeded prompt and can edit it before generating.
 
 ## Changes
 
-### 1. Promote reference photos into the global store (`src/lib/studio-store.ts`)
-Add to `StudioState`:
-- `referenceImages: { id: string; url: string; role: string }[]` (max 3)
-- `addReferenceImage`, `updateReferenceImageRole`, `removeReferenceImage`, `clearReferenceImages`
-This makes them survive step navigation just like `prompt` and `imageUrl` already do.
+### 1. Expand the `TEMPLATES` data (`src/routes/studio.create.tsx`)
+Each entry gains:
+- `prompt: string` — the seeded description
+- `styleId: string` — id from `STYLE_PRESETS`
+- `shape: StickerShape` — suggested shape
 
-### 2. Persist the entire store to `localStorage` (zustand `persist` middleware)
-Wrap the store with `persist` from `zustand/middleware`:
-- Key: `lovable-studio-v1`
-- Storage: `createJSONStorage(() => localStorage)` guarded for SSR (`typeof window !== "undefined"`)
-- `partialize` to only persist serialisable user data: `container`, `volume`, `prompt`, `stylePreset`, `imageUrl`, `shape`, `textLayers`, `whiteBorder`, `imageTransform`, `referenceImages`. Skip transient/derived state.
-- Bump `version: 1` so we can migrate later if the schema changes.
+### 2. Rewrite the click handler
+Replace the SVG-data-URL hack with:
+```ts
+setPrompt(t.prompt);
+setStylePreset(t.styleId);
+setShape(t.shape);
+setActiveTab("describe");   // jump back so they see what was filled in
+toast.success(`Loaded "${t.title}" — tweak it and hit Generate`);
+```
+Convert the `Tabs` to controlled mode (`value` + `onValueChange`) so we can switch programmatically.
 
-### 3. Wire `studio.create.tsx` to read/write references from the store
-Replace the local `useState` for reference uploads with the new store actions. Keep the upload UI identical. The `MentionTextarea` already takes references as a prop — just point it at the store.
+### 3. Clarify the UI
+- Rename the tab from **Templates** to **Starter ideas**.
+- Add a one-line helper above the grid: *"Pick one to pre-fill the prompt and style — you can edit everything before generating."*
+- On each tile, show a small "Use this" affordance on hover so the action is obvious.
+- Keep the gradient as ambient mood color (no longer pretending to be the output).
 
-### 4. SSR safety
-TanStack Start renders routes on the server. The persisted store must:
-- Not read `localStorage` during SSR (the `persist` middleware handles this — server snapshot will be empty defaults; client rehydrates after mount).
-- Avoid hydration mismatch by ensuring the preview panels gracefully render their "empty" state on the server pass and hydrate to real values on the client (no extra work needed because the store starts from `initial` defaults on both sides; persist replays after mount).
-
-### 5. Add a "Start over" affordance
-Now that state is sticky, expose a small **Reset studio** button in `StudioLayout` (top-right, next to step indicator) that calls `useStudio.getState().reset()` and clears persisted storage. Prevents users being stuck with stale data from a previous session.
-
-### 6. Reset rules (unchanged behaviours, made explicit)
-- Generating a new image still resets `imageTransform` (already in store).
-- Changing container resets `volume` if it's no longer valid for the new container (small guard in `setContainer`).
+### 4. Optional polish (low effort)
+Add a tiny chip on each tile showing the suggested style (e.g. "Watercolor") so users understand what they're loading.
 
 ## Out of scope
-- Server-side persistence (would need auth + a `studio_drafts` table — flag as a follow-up if you want cross-device drafts).
-- Migrating older persisted snapshots beyond v1.
-- Persisting uploaded reference *files* (we only store the object URLs / data URLs already produced by the upload step; if those are blob URLs that die on refresh, we'll convert them to data URLs at upload time so they survive).
+- Real template thumbnails (would need pre-generated AI art per template — flag as a follow-up if you want).
+- Saving custom templates.
+- Per-occasion filtering of the grid.
 
 ## Why this works
-Two-layer fix: (a) move the only piece of state that *wasn't* in the global store (reference photos) into it, so client-side navigation already preserves everything; (b) add `persist` so the whole studio session survives refreshes and tab reopens. The user can now freely jump between Bottle, Create, Customize, Preview, and Checkout — and even close the tab — without losing their bottle choice, prompt, references, generated image, framing, text layers, or shape.
+Templates stop lying about being finished art and become what users actually expect: jumping-off points that fill in the form. The gradient tile is honest mood-board decoration, the Describe tab now shows real seeded text the user can refine, and the path to generation stays the same — no new mental model.
