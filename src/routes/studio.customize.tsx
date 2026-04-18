@@ -270,19 +270,14 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
 
       {mode === "text" ? (
         <>
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              value={l.font}
-              onChange={(e) => s.updateTextLayer(l.id, { font: e.target.value })}
-              className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
-            >
-              {FONT_CHOICES.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
-            </select>
+          <FontPicker layer={l} />
+          <div className="grid grid-cols-[1fr_auto] gap-2">
             <input
               type="color"
               value={l.color}
               onChange={(e) => s.updateTextLayer(l.id, { color: e.target.value })}
               className="rounded-xl border border-input h-9 w-full bg-background cursor-pointer"
+              aria-label="Text color"
             />
           </div>
           <div>
