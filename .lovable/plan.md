@@ -1,36 +1,54 @@
 
-## Goal
-Make the live preview communicate **real-world label size** so square / rectangle / rounded / die-cut don't all visually look the same. Show the dimensions (W × H) under the preview on every studio step (Create, Customize, Preview/bottle, Checkout) and pass them through to checkout.
+## Diagnosis
 
-## Current state
-- `getLabelDimensions(container, volume)` in `src/lib/studio-store.ts` already returns real-world `{ w, h, unit }` for the chosen container + volume (this is what the bottle step writes).
-- `StickerArtwork` already uses that ratio for the frame, but the **pixel size on screen is fixed** (`size = 280` etc.), so a 8×10 cm rectangle and a 6×6 cm square render at the same on-screen footprint — misleading.
-- No textual dimension label is shown anywhere in the studio.
+For Can / 330ml the bottle's real-world label is **21 × 11.5 cm** (a wrap label, very wide). In `StickerArtwork.tsx`:
 
-## Changes
+- **Rectangle** uses dims as-is: `21 × 11.5`, `maxEdge = 21` → renders at e.g. 280 × 153 px.
+- **Square** collapses to `min(21, 11.5) = 11.5`, then recomputes `maxEdge = 11.5` → renders at the **full 280 × 280 px**.
 
-### 1. `StickerArtwork.tsx` — scale on-screen size by real dimensions
-- Treat the `size` prop as the **max pixel budget for the largest real-world edge across the whole studio session** (a shared scale).
-- When `dims` exist, compute on-screen `width = size * (w / maxEdge)` and `height = size * (h / maxEdge)` where `maxEdge = max(w, h)`. This keeps proportions honest **and** makes a 6×6 square visibly smaller than a 10×12 rectangle when both are rendered at the same `size` budget.
-- Add an optional `showDimensions` prop. When true and `dims` exist, render a small caption under the artwork: `8 × 10 cm` (uses `dims.unit`).
+So the 11.5 cm square ends up *bigger on screen* than the 21 × 11.5 rectangle's height, which is exactly what your screenshot shows. The shapes are correct geometrically, but the **scale reference resets per shape** instead of being shared.
 
-### 2. Show the dimension caption on every studio step
-Pass `showDimensions` (or render a sibling `<p className="text-xs text-muted-foreground">{w} × {h} {unit}</p>`) under the preview in:
-- `src/routes/studio.create.tsx` — Live preview panel
-- `src/routes/studio.customize.tsx` — main canvas
-- `src/routes/studio.preview.tsx` — bottle mockup (caption goes under the bottle frame, not on the bottle)
-- `src/routes/studio.checkout.tsx` — order summary line ("Label size: 8 × 10 cm")
+## Fix 1 — Shared scale reference (`StickerArtwork.tsx`)
 
-### 3. Checkout carries the spec through
-In `studio.checkout.tsx`, add a "Specifications" block in the order summary listing: container, volume, shape, and **label dimensions** (from `getLabelDimensions`). This guarantees the size info the user saw in the preview is what they confirm at purchase.
+Always normalise on-screen size against the **bottle's natural max edge** (the real `dims.w` / `dims.h` of the rectangle label), regardless of which shape is selected:
 
-### 4. Tiny scale legend (Create + Customize only)
-Under the dimension caption, add one muted line: *"Shown to scale relative to your bottle choice."* So the user understands why a square looks smaller than a rectangle on screen.
+```
+const bottleMaxEdge = dims ? Math.max(dims.w, dims.h) : 1;   // e.g. 21 for can/330ml
+// after computing realW, realH for the chosen shape:
+const width  = Math.round(size * (realW / bottleMaxEdge));
+const height = Math.round(size * (realH / bottleMaxEdge));
+```
+
+Result on Can / 330ml at `size = 280`:
+- Rectangle 21 × 11.5 → 280 × 153 px
+- Square 11.5 × 11.5 → **153 × 153 px** (clearly smaller — matches reality)
+- Circle 11.5 → 153 × 153 px circle
+- Rounded 11.5 → 153 × 153 px
+
+This is the only change needed for the scaling bug.
+
+## Fix 2 — Click-to-edit on the live preview
+
+Currently the live preview's "click to edit" navigates to `/studio/customize`, but customize only exposes text/border controls — no way to reposition or resize the underlying image inside the sticker frame. Add image transform controls so the click actually lets the user re-frame the artwork.
+
+### a) Extend the store (`src/lib/studio-store.ts`)
+Add `imageTransform: { scale: number; offsetX: number; offsetY: number }` (defaults `{ scale: 1, offsetX: 0, offsetY: 0 }`) and a `setImageTransform` action. Reset it when a new image is generated.
+
+### b) Apply transform in `StickerArtwork.tsx`
+On the `<img>` element apply `transform: translate(${offsetX}%, ${offsetY}%) scale(${scale})` and `transform-origin: center`. Keeps `object-cover` so it still fills, but the user can pan/zoom within the crop.
+
+### c) Add an "Edit framing" UI on `/studio/customize`
+Above the existing text-layers panel, add a small section:
+- **Zoom** slider (0.8× – 2.5×) → updates `scale`
+- **Horizontal** slider (-50 → +50) → `offsetX`
+- **Vertical** slider (-50 → +50) → `offsetY`
+- **Reset** button → back to `{1, 0, 0}`
+
+Optional polish: drag-to-pan on the artwork itself (mousedown + pointermove updates offsets). Keep sliders as the always-available fallback.
+
+### d) Persist through preview & checkout
+`StickerArtwork` already reads from the store-driven props chain, so the transform will automatically show on `/studio/preview` and the checkout summary thumbnail with no extra wiring.
 
 ## Out of scope
-- Changing the underlying dimension table in `studio-store.ts`
-- Adding a manual "size override" — bottle + volume remain the source of truth
-- Bottle mockup re-scaling (the bottle photo stays fixed; only the sticker overlay scales)
-
-## Why this works
-The user already locked in real-world dimensions when they picked the bottle and volume. The preview just wasn't *honoring* those dimensions visually — every shape rendered at the same pixel footprint. Scaling the on-screen artwork by the real W × H ratio (against a shared max-edge budget) plus a textual caption makes the size difference between square / rectangle / rounded / die-cut immediately obvious, and surfacing the same dimensions on checkout closes the loop end-to-end.
+- Changing the real-world dimension table
+- Cropping/exporting the transformed image server-side (the transform is a CSS preview; checkout still ships the full generated image — we can flag a follow-up to bake the crop into the final export if you want)
