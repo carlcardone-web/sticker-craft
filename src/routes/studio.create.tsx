@@ -359,22 +359,42 @@ function CreatePage() {
               )}
             </div>
           </TabsContent>
-          <TabsContent value="templates" className="mt-6">
+          <TabsContent value="templates" className="mt-6 space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Pick one to pre-fill the prompt, style, and shape — you can edit everything before generating.
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {TEMPLATES.map((t) => (
-                <button
-                  key={t.title}
-                  onClick={() => {
-                    const svg = `<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="%23eef3ec"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="Inter" font-size="20" fill="%237ea38a">${t.title}</text></svg>`;
-                    setImage(`data:image/svg+xml;utf8,${svg}`);
-                  }}
-                  className="group text-left"
-                >
-                  <div className={`aspect-square rounded-2xl bg-gradient-to-br ${t.color} shadow-soft transition-transform group-hover:-translate-y-0.5 group-hover:shadow-soft-lg`} />
-                  <p className="mt-2 text-sm font-medium truncate">{t.title}</p>
-                  <p className="text-xs text-muted-foreground">{t.occasion}</p>
-                </button>
-              ))}
+              {TEMPLATES.map((t) => {
+                const styleLabel = STYLE_PRESETS.find((s) => s.id === t.styleId)?.label;
+                return (
+                  <button
+                    key={t.title}
+                    onClick={() => {
+                      setPrompt(t.prompt);
+                      setStylePreset(t.styleId);
+                      setShape(t.shape);
+                      setActiveTab("describe");
+                      toast.success(`Loaded "${t.title}" — tweak it and hit Generate`);
+                    }}
+                    className="group text-left"
+                  >
+                    <div className={`relative aspect-square rounded-2xl bg-gradient-to-br ${t.color} shadow-soft transition-transform group-hover:-translate-y-0.5 group-hover:shadow-soft-lg overflow-hidden`}>
+                      {styleLabel && (
+                        <span className="absolute top-2 left-2 text-[10px] font-medium px-2 py-0.5 rounded-full bg-background/80 backdrop-blur-sm text-foreground/80">
+                          {styleLabel}
+                        </span>
+                      )}
+                      <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-foreground/30">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm">
+                          <Wand2 className="h-3.5 w-3.5" /> Use this
+                        </span>
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm font-medium truncate">{t.title}</p>
+                    <p className="text-xs text-muted-foreground">{t.occasion}</p>
+                  </button>
+                );
+              })}
             </div>
           </TabsContent>
         </Tabs>
