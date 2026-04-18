@@ -1,54 +1,44 @@
 
+## Goal
+Persist every studio decision (bottle/volume, prompt, references, generated image, shape, text layers, framing transform, white border) across step navigation and page refreshes so the user never loses work moving between Bottle → Create → Customize → Preview → Checkout.
+
 ## Diagnosis
+`useStudio` (Zustand store in `src/lib/studio-store.ts`) is **in-memory only**. State survives client-side route transitions (since the store lives at module scope) but is **lost on refresh, tab reopen, or SSR hydration mismatch**. Additionally, the **reference photos** uploaded on `/studio/create` (with their roles) are held in *local component state* inside `studio.create.tsx` — they are not in the global store at all, so navigating away from Create and back loses them entirely. Same pattern likely applies to the prompt's `@mention` bindings.
 
-For Can / 330ml the bottle's real-world label is **21 × 11.5 cm** (a wrap label, very wide). In `StickerArtwork.tsx`:
+## Changes
 
-- **Rectangle** uses dims as-is: `21 × 11.5`, `maxEdge = 21` → renders at e.g. 280 × 153 px.
-- **Square** collapses to `min(21, 11.5) = 11.5`, then recomputes `maxEdge = 11.5` → renders at the **full 280 × 280 px**.
+### 1. Promote reference photos into the global store (`src/lib/studio-store.ts`)
+Add to `StudioState`:
+- `referenceImages: { id: string; url: string; role: string }[]` (max 3)
+- `addReferenceImage`, `updateReferenceImageRole`, `removeReferenceImage`, `clearReferenceImages`
+This makes them survive step navigation just like `prompt` and `imageUrl` already do.
 
-So the 11.5 cm square ends up *bigger on screen* than the 21 × 11.5 rectangle's height, which is exactly what your screenshot shows. The shapes are correct geometrically, but the **scale reference resets per shape** instead of being shared.
+### 2. Persist the entire store to `localStorage` (zustand `persist` middleware)
+Wrap the store with `persist` from `zustand/middleware`:
+- Key: `lovable-studio-v1`
+- Storage: `createJSONStorage(() => localStorage)` guarded for SSR (`typeof window !== "undefined"`)
+- `partialize` to only persist serialisable user data: `container`, `volume`, `prompt`, `stylePreset`, `imageUrl`, `shape`, `textLayers`, `whiteBorder`, `imageTransform`, `referenceImages`. Skip transient/derived state.
+- Bump `version: 1` so we can migrate later if the schema changes.
 
-## Fix 1 — Shared scale reference (`StickerArtwork.tsx`)
+### 3. Wire `studio.create.tsx` to read/write references from the store
+Replace the local `useState` for reference uploads with the new store actions. Keep the upload UI identical. The `MentionTextarea` already takes references as a prop — just point it at the store.
 
-Always normalise on-screen size against the **bottle's natural max edge** (the real `dims.w` / `dims.h` of the rectangle label), regardless of which shape is selected:
+### 4. SSR safety
+TanStack Start renders routes on the server. The persisted store must:
+- Not read `localStorage` during SSR (the `persist` middleware handles this — server snapshot will be empty defaults; client rehydrates after mount).
+- Avoid hydration mismatch by ensuring the preview panels gracefully render their "empty" state on the server pass and hydrate to real values on the client (no extra work needed because the store starts from `initial` defaults on both sides; persist replays after mount).
 
-```
-const bottleMaxEdge = dims ? Math.max(dims.w, dims.h) : 1;   // e.g. 21 for can/330ml
-// after computing realW, realH for the chosen shape:
-const width  = Math.round(size * (realW / bottleMaxEdge));
-const height = Math.round(size * (realH / bottleMaxEdge));
-```
+### 5. Add a "Start over" affordance
+Now that state is sticky, expose a small **Reset studio** button in `StudioLayout` (top-right, next to step indicator) that calls `useStudio.getState().reset()` and clears persisted storage. Prevents users being stuck with stale data from a previous session.
 
-Result on Can / 330ml at `size = 280`:
-- Rectangle 21 × 11.5 → 280 × 153 px
-- Square 11.5 × 11.5 → **153 × 153 px** (clearly smaller — matches reality)
-- Circle 11.5 → 153 × 153 px circle
-- Rounded 11.5 → 153 × 153 px
-
-This is the only change needed for the scaling bug.
-
-## Fix 2 — Click-to-edit on the live preview
-
-Currently the live preview's "click to edit" navigates to `/studio/customize`, but customize only exposes text/border controls — no way to reposition or resize the underlying image inside the sticker frame. Add image transform controls so the click actually lets the user re-frame the artwork.
-
-### a) Extend the store (`src/lib/studio-store.ts`)
-Add `imageTransform: { scale: number; offsetX: number; offsetY: number }` (defaults `{ scale: 1, offsetX: 0, offsetY: 0 }`) and a `setImageTransform` action. Reset it when a new image is generated.
-
-### b) Apply transform in `StickerArtwork.tsx`
-On the `<img>` element apply `transform: translate(${offsetX}%, ${offsetY}%) scale(${scale})` and `transform-origin: center`. Keeps `object-cover` so it still fills, but the user can pan/zoom within the crop.
-
-### c) Add an "Edit framing" UI on `/studio/customize`
-Above the existing text-layers panel, add a small section:
-- **Zoom** slider (0.8× – 2.5×) → updates `scale`
-- **Horizontal** slider (-50 → +50) → `offsetX`
-- **Vertical** slider (-50 → +50) → `offsetY`
-- **Reset** button → back to `{1, 0, 0}`
-
-Optional polish: drag-to-pan on the artwork itself (mousedown + pointermove updates offsets). Keep sliders as the always-available fallback.
-
-### d) Persist through preview & checkout
-`StickerArtwork` already reads from the store-driven props chain, so the transform will automatically show on `/studio/preview` and the checkout summary thumbnail with no extra wiring.
+### 6. Reset rules (unchanged behaviours, made explicit)
+- Generating a new image still resets `imageTransform` (already in store).
+- Changing container resets `volume` if it's no longer valid for the new container (small guard in `setContainer`).
 
 ## Out of scope
-- Changing the real-world dimension table
-- Cropping/exporting the transformed image server-side (the transform is a CSS preview; checkout still ships the full generated image — we can flag a follow-up to bake the crop into the final export if you want)
+- Server-side persistence (would need auth + a `studio_drafts` table — flag as a follow-up if you want cross-device drafts).
+- Migrating older persisted snapshots beyond v1.
+- Persisting uploaded reference *files* (we only store the object URLs / data URLs already produced by the upload step; if those are blob URLs that die on refresh, we'll convert them to data URLs at upload time so they survive).
+
+## Why this works
+Two-layer fix: (a) move the only piece of state that *wasn't* in the global store (reference photos) into it, so client-side navigation already preserves everything; (b) add `persist` so the whole studio session survives refreshes and tab reopens. The user can now freely jump between Bottle, Create, Customize, Preview, and Checkout — and even close the tab — without losing their bottle choice, prompt, references, generated image, framing, text layers, or shape.
