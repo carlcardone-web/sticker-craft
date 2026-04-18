@@ -1,4 +1,6 @@
-import { getLabelDimensions, type StickerShape, type TextLayer, type ImageTransform } from "@/lib/studio-store";
+import { useEffect } from "react";
+import { getLabelDimensions, type StickerShape, type TextLayer, type ImageTransform, useStudio } from "@/lib/studio-store";
+import { ensureFontLoaded, getFontFamilyCSS, injectCustomFonts } from "@/lib/fonts";
 
 type Props = {
     imageUrl: string | null;
@@ -60,6 +62,12 @@ export function StickerArtwork({
     imageTransform,
     className = "",
 }: Props) {
+    const customFonts = useStudio((s) => s.customFonts);
+    useEffect(() => { injectCustomFonts(customFonts); }, [customFonts]);
+    useEffect(() => {
+        textLayers.forEach((l) => ensureFontLoaded(l.font));
+    }, [textLayers]);
+
     const dims = getLabelDimensions(container, volume);
     const t = imageTransform ?? { scale: 1, offsetX: 0, offsetY: 0 };
 
@@ -140,7 +148,7 @@ export function StickerArtwork({
                     style={{
                       left: `${l.x}%`,
                       top: `${l.y}%`,
-                      fontFamily: l.font,
+                      fontFamily: getFontFamilyCSS(l.font, customFonts),
                       color: l.color,
                       fontSize: l.size,
                       textShadow: "0 1px 2px rgba(255,255,255,0.4)",

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,16 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
-  FONT_CHOICES,
   CONTAINER_CHOICES,
   getLabelDimensions,
   useStudio,
   type TextLayer,
 } from "@/lib/studio-store";
+import { FONT_LIBRARY, ensureFontLoaded, detectFontFormat, getFontFamilyCSS, type FontCategory } from "@/lib/fonts";
 import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { editStickerWithText } from "@/server/edit-sticker-with-text";
 import {
-  ArrowLeft, ArrowRight, Plus, Trash2, ImagePlus, X, Sparkles, RefreshCw,
+  ArrowLeft, ArrowRight, Plus, Trash2, ImagePlus, X, Sparkles, RefreshCw, Upload,
 } from "lucide-react";
 
 export const Route = createFileRoute("/studio/customize")({
@@ -270,19 +270,14 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
 
       {mode === "text" ? (
         <>
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              value={l.font}
-              onChange={(e) => s.updateTextLayer(l.id, { font: e.target.value })}
-              className="rounded-xl border border-input bg-background px-3 py-2 text-sm"
-            >
-              {FONT_CHOICES.map((f) => <option key={f} value={f} style={{ fontFamily: f }}>{f}</option>)}
-            </select>
+          <FontPicker layer={l} />
+          <div className="grid grid-cols-[1fr_auto] gap-2">
             <input
               type="color"
               value={l.color}
               onChange={(e) => s.updateTextLayer(l.id, { color: e.target.value })}
               className="rounded-xl border border-input h-9 w-full bg-background cursor-pointer"
+              aria-label="Text color"
             />
           </div>
           <div>
@@ -390,6 +385,122 @@ function TextLayerCard({ layer: l }: { layer: TextLayer }) {
           <Slider value={[l.y]} min={0} max={100} step={1} onValueChange={(v) => s.updateTextLayer(l.id, { y: v[0] })} className="mt-2" />
         </div>
       </div>
+    </div>
+  );
+}
+
+const CATEGORY_ORDER: FontCategory[] = ["Sans", "Serif", "Script", "Display", "Mono"];
+
+function FontPicker({ layer: l }: { layer: TextLayer }) {
+  const s = useStudio();
+  const customFonts = s.customFonts;
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    FONT_LIBRARY.forEach((f) => ensureFontLoaded(f.family));
+  }, []);
+
+  function onFontFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error(`${file.name} is over 2MB.`);
+      return;
+    }
+    const format = detectFontFormat(file.name);
+    if (!format) {
+      toast.error("Use a .ttf, .otf, .woff or .woff2 file.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const id = s.addCustomFont({
+        name: file.name,
+        dataUrl: reader.result as string,
+        format,
+      });
+      s.updateTextLayer(l.id, { font: `user-${id}` });
+      toast.success(`${file.name} ready to use`);
+    };
+    reader.onerror = () => toast.error("Could not read font file.");
+    reader.readAsDataURL(file);
+  }
+
+  const grouped = CATEGORY_ORDER.map((cat) => ({
+    cat,
+    fonts: FONT_LIBRARY.filter((f) => f.category === cat),
+  }));
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-[1fr_auto] gap-2">
+        <select
+          value={l.font}
+          onChange={(e) => {
+            const v = e.target.value;
+            s.updateTextLayer(l.id, { font: v });
+            ensureFontLoaded(v);
+          }}
+          className="rounded-xl border border-input bg-background px-3 py-2 text-sm min-w-0"
+          style={{ fontFamily: getFontFamilyCSS(l.font, customFonts) }}
+        >
+          {customFonts.length > 0 && (
+            <optgroup label="Your fonts">
+              {customFonts.map((f) => (
+                <option
+                  key={f.id}
+                  value={`user-${f.id}`}
+                  style={{ fontFamily: `'user-${f.id}', system-ui` }}
+                >
+                  {f.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {grouped.map(({ cat, fonts }) => (
+            <optgroup key={cat} label={cat}>
+              {fonts.map((f) => (
+                <option key={f.family} value={f.family} style={{ fontFamily: `'${f.family}', ${f.fallback}` }}>
+                  {f.family}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => fileRef.current?.click()}
+          className="rounded-xl h-9 px-3 shrink-0"
+          title="Upload your own font"
+        >
+          <Upload className="h-3.5 w-3.5" />
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2"
+          className="hidden"
+          onChange={onFontFileChange}
+        />
+      </div>
+      {l.font.startsWith("user-") ? (
+        <button
+          type="button"
+          onClick={() => {
+            const id = l.font.slice("user-".length);
+            s.removeCustomFont(id);
+            s.updateTextLayer(l.id, { font: "Inter" });
+          }}
+          className="text-[11px] text-muted-foreground hover:text-destructive underline-offset-2 hover:underline"
+        >
+          Remove uploaded font
+        </button>
+      ) : (
+        <p className="text-[10px] text-muted-foreground/80">Upload your own .ttf, .otf, .woff or .woff2 (max 2MB).</p>
+      )}
     </div>
   );
 }

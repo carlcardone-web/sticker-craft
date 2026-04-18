@@ -26,6 +26,14 @@ export type ImageTransform = { scale: number; offsetX: number; offsetY: number }
 
 export type ReferenceImage = { id: string; url: string; role: string };
 
+export type CustomFont = {
+    id: string;
+    name: string;
+    dataUrl: string;
+    /** CSS font format hint, e.g. "truetype", "opentype", "woff", "woff2" */
+    format: string;
+};
+
 export type StudioState = {
     // Step 0
     container: string | null;
@@ -40,6 +48,7 @@ export type StudioState = {
     textLayers: TextLayer[];
     whiteBorder: boolean;
     imageTransform: ImageTransform;
+    customFonts: CustomFont[];
 
     setContainer: (c: string | null) => void;
     setVolume: (v: string | null) => void;
@@ -61,6 +70,8 @@ export type StudioState = {
     updateReferenceImageRole: (id: string, role: string) => void;
     removeReferenceImage: (id: string) => void;
     clearReferenceImages: () => void;
+    addCustomFont: (font: Omit<CustomFont, "id">) => string;
+    removeCustomFont: (id: string) => void;
     reset: () => void;
 };
 
@@ -79,6 +90,7 @@ const initial = {
     textLayers: [] as TextLayer[],
     whiteBorder: true,
     imageTransform: { ...DEFAULT_TRANSFORM },
+    customFonts: [] as CustomFont[],
 };
 
 export const useStudio = create<StudioState>()(
@@ -188,6 +200,16 @@ export const useStudio = create<StudioState>()(
             removeReferenceImage: (id) =>
                 set((s) => ({ referenceImages: s.referenceImages.filter((r) => r.id !== id) })),
             clearReferenceImages: () => set({ referenceImages: [] }),
+            addCustomFont: (font) => {
+                const id =
+                    typeof crypto !== "undefined" && "randomUUID" in crypto
+                        ? crypto.randomUUID()
+                        : `${Date.now()}-${Math.random()}`;
+                set((s) => ({ customFonts: [...s.customFonts, { ...font, id }] }));
+                return id;
+            },
+            removeCustomFont: (id) =>
+                set((s) => ({ customFonts: s.customFonts.filter((f) => f.id !== id) })),
             reset: () => set({ ...initial, imageTransform: { ...DEFAULT_TRANSFORM } }),
         }),
         {
@@ -216,6 +238,7 @@ export const useStudio = create<StudioState>()(
                 textLayers: s.textLayers,
                 whiteBorder: s.whiteBorder,
                 imageTransform: s.imageTransform,
+                customFonts: s.customFonts,
             }),
         },
     ),
@@ -259,14 +282,7 @@ export const STYLE_PRESETS = [
   { id: "modern-label",    label: "Modern Label",    description: "Clean flat design — minimal, contemporary" },
 ];
 
-export const FONT_CHOICES = [
-    "Inter",
-    "Georgia",
-    "Playfair Display",
-    "Courier New",
-    "Verdana",
-    "Brush Script MT",
-];
+// FONT_CHOICES removed — use FONT_LIBRARY from "@/lib/fonts" instead.
 
 export const STEPS = [
   { id: 1, slug: "bottle",    label: "Bottle",    path: "/studio/bottle" },
