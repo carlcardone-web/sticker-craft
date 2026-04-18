@@ -60,6 +60,8 @@ function CreatePage() {
     setPrompt, setStylePreset, setImage,
     shape, setShape,
     container, volume,
+    referenceImages,
+    addReferenceImage, updateReferenceImageRole, removeReferenceImage,
   } = useStudio();
   const navigate = useNavigate();
   const activeContainer = CONTAINER_CHOICES.find((c) => c.id === container);
@@ -72,7 +74,6 @@ function CreatePage() {
   }, [container, volume, navigate]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [referenceImages, setReferenceImages] = useState<{ url: string; role: string }[]>([]);
 
   const MAX_REFS = 3;
   const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
@@ -118,22 +119,10 @@ function CreatePage() {
       }
       const reader = new FileReader();
       reader.onload = () => {
-        setReferenceImages((prev) =>
-          prev.length >= MAX_REFS
-            ? prev
-            : [...prev, { url: reader.result as string, role: "Subject" }]
-        );
+        addReferenceImage(reader.result as string, "Subject");
       };
       reader.readAsDataURL(file);
     });
-  }
-
-  function updateReferenceRole(index: number, role: string) {
-    setReferenceImages((prev) => prev.map((r, i) => (i === index ? { ...r, role } : r)));
-  }
-
-  function removeReference(index: number) {
-    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   return (
@@ -223,12 +212,12 @@ function CreatePage() {
               </p>
               <div className="grid grid-cols-3 gap-3">
                 {referenceImages.map((ref, i) => (
-                  <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
+                  <div key={ref.id} className="rounded-2xl border border-border bg-card overflow-hidden flex flex-col">
                     <div className="relative aspect-square">
                       <img src={ref.url} alt={`Reference ${i + 1}`} className="h-full w-full object-cover" />
                       <button
                         type="button"
-                        onClick={() => removeReference(i)}
+                        onClick={() => removeReferenceImage(ref.id)}
                         className="absolute top-1.5 right-1.5 h-6 w-6 rounded-full bg-background/90 border border-border flex items-center justify-center shadow-sm hover:bg-background"
                         aria-label="Remove reference"
                       >
@@ -239,7 +228,7 @@ function CreatePage() {
                       <input
                         type="text"
                         value={ref.role}
-                        onChange={(e) => updateReferenceRole(i, e.target.value)}
+                        onChange={(e) => updateReferenceImageRole(ref.id, e.target.value)}
                         placeholder="Role (e.g. Subject)"
                         maxLength={60}
                         list={`role-presets-${i}`}
@@ -253,7 +242,7 @@ function CreatePage() {
                           <button
                             key={p}
                             type="button"
-                            onClick={() => updateReferenceRole(i, p)}
+                            onClick={() => updateReferenceImageRole(ref.id, p)}
                             className={[
                               "text-[10px] px-1.5 py-0.5 rounded-full transition-colors",
                               ref.role.toLowerCase() === p.toLowerCase()
