@@ -226,13 +226,13 @@ function CreatePage() {
           </div>
         </div>
 
-        <Tabs defaultValue="describe" className="mt-8">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "describe" | "templates")} className="mt-8">
           <TabsList className="bg-muted/60 p-1 rounded-full h-auto">
             <TabsTrigger value="describe" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <Sparkles className="h-4 w-4 mr-1.5" /> Describe it
             </TabsTrigger>
             <TabsTrigger value="templates" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <LayoutGrid className="h-4 w-4 mr-1.5" /> Templates
+              <LayoutGrid className="h-4 w-4 mr-1.5" /> Starter ideas
             </TabsTrigger>
           </TabsList>
 
