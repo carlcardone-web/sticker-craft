@@ -22,18 +22,82 @@ const BLOCKLIST = [
   "batman", "superman", "harry potter", "star wars", "nike logo", "coca-cola",
 ];
 
-const TEMPLATES = [
-  { occasion: "Wedding", title: "Eucalyptus monogram", color: "from-[oklch(0.86_0.04_150)] to-[oklch(0.92_0.02_120)]" },
-  { occasion: "Wedding", title: "Gold botanical", color: "from-[oklch(0.92_0.05_85)] to-[oklch(0.86_0.04_70)]" },
-  { occasion: "Birthday", title: "Confetti pop", color: "from-[oklch(0.88_0.08_30)] to-[oklch(0.9_0.07_55)]" },
-  { occasion: "Birthday", title: "Pastel balloons", color: "from-[oklch(0.9_0.05_320)] to-[oklch(0.92_0.04_200)]" },
-  { occasion: "Baby Shower", title: "Cloud nine", color: "from-[oklch(0.95_0.02_220)] to-[oklch(0.93_0.03_200)]" },
-  { occasion: "Baby Shower", title: "Tiny moon", color: "from-[oklch(0.92_0.03_260)] to-[oklch(0.88_0.04_280)]" },
-  { occasion: "Housewarming", title: "Welcome home", color: "from-[oklch(0.9_0.04_60)] to-[oklch(0.88_0.05_40)]" },
-  { occasion: "Holiday", title: "Pine & cinnamon", color: "from-[oklch(0.85_0.06_150)] to-[oklch(0.8_0.07_30)]" },
-  { occasion: "Holiday", title: "Snow garland", color: "from-[oklch(0.95_0.01_220)] to-[oklch(0.9_0.02_200)]" },
-  { occasion: "Corporate", title: "Crisp monogram", color: "from-[oklch(0.92_0.01_250)] to-[oklch(0.88_0.02_240)]" },
+type Template = {
+  occasion: string;
+  title: string;
+  color: string;
+  prompt: string;
+  styleId: string;
+  shape: StickerShape;
+};
+
+const TEMPLATES: Template[] = [
+  {
+    occasion: "Wedding", title: "Eucalyptus monogram",
+    color: "from-[oklch(0.86_0.04_150)] to-[oklch(0.92_0.02_120)]",
+    prompt: "A delicate wreath of eucalyptus leaves and tiny white wildflowers framing an elegant monogram, soft watercolor on cream background, airy and romantic",
+    styleId: "natural-wine", shape: "circle",
+  },
+  {
+    occasion: "Wedding", title: "Gold botanical",
+    color: "from-[oklch(0.92_0.05_85)] to-[oklch(0.86_0.04_70)]",
+    prompt: "An ornate botanical border in warm gold leaf with classical engraved leaves and small berries, refined and timeless, ivory background",
+    styleId: "fine-wine", shape: "oval",
+  },
+  {
+    occasion: "Birthday", title: "Confetti pop",
+    color: "from-[oklch(0.88_0.08_30)] to-[oklch(0.9_0.07_55)]",
+    prompt: "Joyful scattered confetti and streamers in coral, peach and gold, playful hand-drawn shapes on a warm cream background",
+    styleId: "craft-beer", shape: "square",
+  },
+  {
+    occasion: "Birthday", title: "Pastel balloons",
+    color: "from-[oklch(0.9_0.05_320)] to-[oklch(0.92_0.04_200)]",
+    prompt: "A cheerful cluster of pastel pink, mint and sky-blue balloons with delicate strings, soft flat illustration style, white background",
+    styleId: "modern-label", shape: "square",
+  },
+  {
+    occasion: "Baby Shower", title: "Cloud nine",
+    color: "from-[oklch(0.95_0.02_220)] to-[oklch(0.93_0.03_200)]",
+    prompt: "Fluffy soft clouds with tiny stars in a dreamy pale blue sky, gentle watercolor wash, calm and tender",
+    styleId: "natural-wine", shape: "rounded",
+  },
+  {
+    occasion: "Baby Shower", title: "Tiny moon",
+    color: "from-[oklch(0.92_0.03_260)] to-[oklch(0.88_0.04_280)]",
+    prompt: "A sleeping crescent moon with a single twinkling star, minimal line illustration in soft lavender, peaceful nursery feel",
+    styleId: "modern-label", shape: "circle",
+  },
+  {
+    occasion: "Housewarming", title: "Welcome home",
+    color: "from-[oklch(0.9_0.04_60)] to-[oklch(0.88_0.05_40)]",
+    prompt: "A cozy little house with warm lit windows surrounded by leafy plants and a small welcome banner, friendly hand-drawn illustration",
+    styleId: "craft-beer", shape: "rounded",
+  },
+  {
+    occasion: "Holiday", title: "Pine & cinnamon",
+    color: "from-[oklch(0.85_0.06_150)] to-[oklch(0.8_0.07_30)]",
+    prompt: "A festive wreath of pine sprigs, cinnamon sticks, and red berries tied with a rustic ribbon, warm botanical engraving style",
+    styleId: "fine-wine", shape: "circle",
+  },
+  {
+    occasion: "Holiday", title: "Snow garland",
+    color: "from-[oklch(0.95_0.01_220)] to-[oklch(0.9_0.02_200)]",
+    prompt: "A delicate winter garland of snow-dusted evergreen branches and silver ornaments, luminous and elegant on a soft white background",
+    styleId: "sparkling", shape: "rectangle",
+  },
+  {
+    occasion: "Corporate", title: "Crisp monogram",
+    color: "from-[oklch(0.92_0.01_250)] to-[oklch(0.88_0.02_240)]",
+    prompt: "A clean modern monogram inside a thin geometric frame, minimal flat design, neutral palette of slate and warm white",
+    styleId: "modern-label", shape: "square",
+  },
 ];
+
+const STYLE_LABEL_BY_ID: Record<string, string> = Object.fromEntries(
+  // populated below after STYLE_PRESETS import is available
+  [] as [string, string][],
+);
 
 const SHAPES: { id: StickerShape; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "circle", label: "Circle", Icon: Circle },
