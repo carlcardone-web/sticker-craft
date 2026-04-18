@@ -200,6 +200,16 @@ export const useStudio = create<StudioState>()(
             removeReferenceImage: (id) =>
                 set((s) => ({ referenceImages: s.referenceImages.filter((r) => r.id !== id) })),
             clearReferenceImages: () => set({ referenceImages: [] }),
+            addCustomFont: (font) => {
+                const id =
+                    typeof crypto !== "undefined" && "randomUUID" in crypto
+                        ? crypto.randomUUID()
+                        : `${Date.now()}-${Math.random()}`;
+                set((s) => ({ customFonts: [...s.customFonts, { ...font, id }] }));
+                return id;
+            },
+            removeCustomFont: (id) =>
+                set((s) => ({ customFonts: s.customFonts.filter((f) => f.id !== id) })),
             reset: () => set({ ...initial, imageTransform: { ...DEFAULT_TRANSFORM } }),
         }),
         {
