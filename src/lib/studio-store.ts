@@ -238,6 +238,7 @@ export const useStudio = create<StudioState>()(
                 textLayers: s.textLayers,
                 whiteBorder: s.whiteBorder,
                 imageTransform: s.imageTransform,
+                customFonts: s.customFonts,
             }),
         },
     ),
