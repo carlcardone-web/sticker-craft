@@ -42,7 +42,11 @@ export const Route = createFileRoute("/api/gelato-webhook")({
 
         // orderReferenceId we set in createGelatoOrder is the local order UUID
         const eventName = String(parsed.event || "").toLowerCase();
-        const update: Record<string, any> = {};
+        const update: {
+          status?: string;
+          tracking_url?: string;
+          tracking_carrier?: string;
+        } = {};
 
         if (eventName.includes("printed")) update.status = "printed";
         else if (eventName.includes("shipped")) update.status = "shipped";
