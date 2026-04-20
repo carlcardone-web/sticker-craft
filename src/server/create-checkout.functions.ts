@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import Stripe from "stripe";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { selectGelatoProduct } from "@/lib/gelato-products";
@@ -29,28 +28,29 @@ const Input = z.object({
   returnUrl: z.string().url(),
 });
 
-function getStripe() {
-  // The Stripe gateway key works as a normal secret here because we're calling
-  // stripe directly from a TanStack server fn (Worker runtime). Use sandbox key
-  // until the project goes live.
+const GATEWAY = "https://connector-gateway.lovable.dev/stripe";
+
+async function stripeFetch(path: string, params: Record<string, string>) {
   const key = process.env.STRIPE_SANDBOX_API_KEY || process.env.STRIPE_LIVE_API_KEY;
   const lovableKey = process.env.LOVABLE_API_KEY;
   if (!key || !lovableKey) throw new Error("Stripe gateway not configured");
 
-  return new Stripe(key, {
-    apiVersion: "2024-06-20" as any,
-    httpClient: Stripe.createFetchHttpClient((url: string | URL, init?: RequestInit) => {
-      const gatewayUrl = url.toString().replace("https://api.stripe.com", "https://connector-gateway.lovable.dev/stripe");
-      return fetch(gatewayUrl, {
-        ...init,
-        headers: {
-          ...Object.fromEntries(new Headers(init?.headers).entries()),
-          "X-Connection-Api-Key": key,
-          "Lovable-API-Key": lovableKey,
-        },
-      });
-    }),
+  const body = new URLSearchParams(params);
+  const res = await fetch(`${GATEWAY}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Connection-Api-Key": key,
+      "Lovable-API-Key": lovableKey,
+    },
+    body,
   });
+  const data = await res.json();
+  if (!res.ok) {
+    console.error("Stripe error:", res.status, data);
+    throw new Error(data?.error?.message || `Stripe error (${res.status})`);
+  }
+  return data;
 }
 
 export const createCheckoutSession = createServerFn({ method: "POST" })
@@ -58,7 +58,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => Input.parse(input))
   .handler(async ({ data, context }) => {
     const { userId, claims } = context;
-    const customerEmail = (claims as any).email || data.recipient.email;
+    const customerEmail = (claims as { email?: string }).email || data.recipient.email;
 
     const sku = selectGelatoProduct({
       container: data.container,
@@ -67,7 +67,6 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
     });
     if (!sku) throw new Error("No Gelato product for this configuration");
 
-    // Insert pending order first so we have an id
     const { data: orderRow, error: insErr } = await supabaseAdmin
       .from("orders")
       .insert({
@@ -83,7 +82,7 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
         total_cents: data.totalCents,
         currency: "eur",
         metadata: {
-          shippingMethodUid: data.shippingMethodUid,
+          shippingMethodUid: data.shippingMethodUid ?? null,
           container: data.container,
           shape: data.shape,
         },
@@ -96,45 +95,33 @@ export const createCheckoutSession = createServerFn({ method: "POST" })
       throw new Error("Could not create order");
     }
 
-    const stripe = getStripe();
     const env = process.env.STRIPE_SANDBOX_API_KEY ? "sandbox" : "live";
+    const returnUrl = `${data.returnUrl}?session_id={CHECKOUT_SESSION_ID}&order_id=${orderRow.id}`;
 
-    const session = await stripe.checkout.sessions.create({
-      ui_mode: "embedded",
-      mode: "payment",
-      customer_email: customerEmail,
-      return_url: `${data.returnUrl}?session_id={CHECKOUT_SESSION_ID}&order_id=${orderRow.id}`,
-      line_items: [
-        {
-          price_data: {
-            currency: "eur",
-            product_data: {
-              name: `Custom ${sku.label}`,
-              description: `Quantity ${data.quantity} • Shipping: ${data.shippingMethod}`,
-            },
-            unit_amount: data.totalCents,
-          },
-          quantity: 1,
-        },
-      ],
-      metadata: {
-        orderId: orderRow.id,
-        userId,
-        environment: env,
-      },
-      payment_intent_data: {
-        metadata: { orderId: orderRow.id, userId },
-      },
+    const session = await stripeFetch("/v1/checkout/sessions", {
+      "ui_mode": "embedded",
+      "mode": "payment",
+      "customer_email": customerEmail,
+      "return_url": returnUrl,
+      "line_items[0][price_data][currency]": "eur",
+      "line_items[0][price_data][product_data][name]": `Custom ${sku.label}`,
+      "line_items[0][price_data][product_data][description]": `Quantity ${data.quantity} • ${data.shippingMethod}`,
+      "line_items[0][price_data][unit_amount]": String(data.totalCents),
+      "line_items[0][quantity]": "1",
+      "metadata[orderId]": orderRow.id,
+      "metadata[userId]": userId,
+      "metadata[environment]": env,
+      "payment_intent_data[metadata][orderId]": orderRow.id,
+      "payment_intent_data[metadata][userId]": userId,
     });
 
-    // Store stripe session id on the order
     await supabaseAdmin
       .from("orders")
       .update({ stripe_session_id: session.id })
       .eq("id", orderRow.id);
 
     return {
-      clientSecret: session.client_secret,
+      clientSecret: session.client_secret as string,
       orderId: orderRow.id,
     };
   });
