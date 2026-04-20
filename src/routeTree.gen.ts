@@ -10,17 +10,44 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as StudioRouteImport } from './routes/studio'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
+import { Route as StudioReturnRouteImport } from './routes/studio.return'
 import { Route as StudioPreviewRouteImport } from './routes/studio.preview'
 import { Route as StudioCustomizeRouteImport } from './routes/studio.customize'
 import { Route as StudioCreateRouteImport } from './routes/studio.create'
 import { Route as StudioCheckoutRouteImport } from './routes/studio.checkout'
 import { Route as StudioBottleRouteImport } from './routes/studio.bottle'
+import { Route as ApiGelatoWebhookRouteImport } from './routes/api.gelato-webhook'
+import { Route as StudioOrderIdRouteImport } from './routes/studio.order.$id'
 
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
   path: '/studio',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
 const StudioIndexRoute = StudioIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => StudioRoute,
+} as any)
+const StudioReturnRoute = StudioReturnRouteImport.update({
+  id: '/return',
+  path: '/return',
   getParentRoute: () => StudioRoute,
 } as any)
 const StudioPreviewRoute = StudioPreviewRouteImport.update({
@@ -58,72 +90,129 @@ const StudioBottleRoute = StudioBottleRouteImport.update({
   path: '/bottle',
   getParentRoute: () => StudioRoute,
 } as any)
+const ApiGelatoWebhookRoute = ApiGelatoWebhookRouteImport.update({
+  id: '/api/gelato-webhook',
+  path: '/api/gelato-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StudioOrderIdRoute = StudioOrderIdRouteImport.update({
+  id: '/order/$id',
+  path: '/order/$id',
+  getParentRoute: () => StudioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/studio': typeof StudioRouteWithChildren
+  '/api/gelato-webhook': typeof ApiGelatoWebhookRoute
   '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
   '/studio/preview': typeof StudioPreviewRoute
+  '/studio/return': typeof StudioReturnRoute
   '/studio/': typeof StudioIndexRoute
+  '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/api/gelato-webhook': typeof ApiGelatoWebhookRoute
   '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
   '/studio/preview': typeof StudioPreviewRoute
+  '/studio/return': typeof StudioReturnRoute
   '/studio': typeof StudioIndexRoute
+  '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/studio': typeof StudioRouteWithChildren
+  '/api/gelato-webhook': typeof ApiGelatoWebhookRoute
   '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
   '/studio/preview': typeof StudioPreviewRoute
+  '/studio/return': typeof StudioReturnRoute
   '/studio/': typeof StudioIndexRoute
+  '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
     | '/studio'
+    | '/api/gelato-webhook'
     | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
     | '/studio/customize'
     | '/studio/preview'
+    | '/studio/return'
     | '/studio/'
+    | '/studio/order/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
+    | '/api/gelato-webhook'
     | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
     | '/studio/customize'
     | '/studio/preview'
+    | '/studio/return'
     | '/studio'
+    | '/studio/order/$id'
   id:
     | '__root__'
     | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
     | '/studio'
+    | '/api/gelato-webhook'
     | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
     | '/studio/customize'
     | '/studio/preview'
+    | '/studio/return'
     | '/studio/'
+    | '/studio/order/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
+  LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
   StudioRoute: typeof StudioRouteWithChildren
+  ApiGelatoWebhookRoute: typeof ApiGelatoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -133,6 +222,34 @@ declare module '@tanstack/react-router' {
       path: '/studio'
       fullPath: '/studio'
       preLoaderRoute: typeof StudioRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -147,6 +264,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/studio/'
       preLoaderRoute: typeof StudioIndexRouteImport
+      parentRoute: typeof StudioRoute
+    }
+    '/studio/return': {
+      id: '/studio/return'
+      path: '/return'
+      fullPath: '/studio/return'
+      preLoaderRoute: typeof StudioReturnRouteImport
       parentRoute: typeof StudioRoute
     }
     '/studio/preview': {
@@ -184,6 +308,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioBottleRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/api/gelato-webhook': {
+      id: '/api/gelato-webhook'
+      path: '/api/gelato-webhook'
+      fullPath: '/api/gelato-webhook'
+      preLoaderRoute: typeof ApiGelatoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/studio/order/$id': {
+      id: '/studio/order/$id'
+      path: '/order/$id'
+      fullPath: '/studio/order/$id'
+      preLoaderRoute: typeof StudioOrderIdRouteImport
+      parentRoute: typeof StudioRoute
+    }
   }
 }
 
@@ -193,7 +331,9 @@ interface StudioRouteChildren {
   StudioCreateRoute: typeof StudioCreateRoute
   StudioCustomizeRoute: typeof StudioCustomizeRoute
   StudioPreviewRoute: typeof StudioPreviewRoute
+  StudioReturnRoute: typeof StudioReturnRoute
   StudioIndexRoute: typeof StudioIndexRoute
+  StudioOrderIdRoute: typeof StudioOrderIdRoute
 }
 
 const StudioRouteChildren: StudioRouteChildren = {
@@ -202,7 +342,9 @@ const StudioRouteChildren: StudioRouteChildren = {
   StudioCreateRoute: StudioCreateRoute,
   StudioCustomizeRoute: StudioCustomizeRoute,
   StudioPreviewRoute: StudioPreviewRoute,
+  StudioReturnRoute: StudioReturnRoute,
   StudioIndexRoute: StudioIndexRoute,
+  StudioOrderIdRoute: StudioOrderIdRoute,
 }
 
 const StudioRouteWithChildren =
@@ -210,17 +352,13 @@ const StudioRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
+  LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
   StudioRoute: StudioRouteWithChildren,
+  ApiGelatoWebhookRoute: ApiGelatoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
