@@ -16,12 +16,14 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StudioIndexRouteImport } from './routes/studio.index'
+import { Route as StudioReturnRouteImport } from './routes/studio.return'
 import { Route as StudioPreviewRouteImport } from './routes/studio.preview'
 import { Route as StudioCustomizeRouteImport } from './routes/studio.customize'
 import { Route as StudioCreateRouteImport } from './routes/studio.create'
 import { Route as StudioCheckoutRouteImport } from './routes/studio.checkout'
 import { Route as StudioBottleRouteImport } from './routes/studio.bottle'
 import { Route as ApiGelatoWebhookRouteImport } from './routes/api.gelato-webhook'
+import { Route as StudioOrderIdRouteImport } from './routes/studio.order.$id'
 
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
@@ -58,6 +60,11 @@ const StudioIndexRoute = StudioIndexRouteImport.update({
   path: '/',
   getParentRoute: () => StudioRoute,
 } as any)
+const StudioReturnRoute = StudioReturnRouteImport.update({
+  id: '/return',
+  path: '/return',
+  getParentRoute: () => StudioRoute,
+} as any)
 const StudioPreviewRoute = StudioPreviewRouteImport.update({
   id: '/preview',
   path: '/preview',
@@ -88,6 +95,11 @@ const ApiGelatoWebhookRoute = ApiGelatoWebhookRouteImport.update({
   path: '/api/gelato-webhook',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StudioOrderIdRoute = StudioOrderIdRouteImport.update({
+  id: '/order/$id',
+  path: '/order/$id',
+  getParentRoute: () => StudioRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,7 +114,9 @@ export interface FileRoutesByFullPath {
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
   '/studio/preview': typeof StudioPreviewRoute
+  '/studio/return': typeof StudioReturnRoute
   '/studio/': typeof StudioIndexRoute
+  '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -116,7 +130,9 @@ export interface FileRoutesByTo {
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
   '/studio/preview': typeof StudioPreviewRoute
+  '/studio/return': typeof StudioReturnRoute
   '/studio': typeof StudioIndexRoute
+  '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -132,7 +148,9 @@ export interface FileRoutesById {
   '/studio/create': typeof StudioCreateRoute
   '/studio/customize': typeof StudioCustomizeRoute
   '/studio/preview': typeof StudioPreviewRoute
+  '/studio/return': typeof StudioReturnRoute
   '/studio/': typeof StudioIndexRoute
+  '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -149,7 +167,9 @@ export interface FileRouteTypes {
     | '/studio/create'
     | '/studio/customize'
     | '/studio/preview'
+    | '/studio/return'
     | '/studio/'
+    | '/studio/order/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -163,7 +183,9 @@ export interface FileRouteTypes {
     | '/studio/create'
     | '/studio/customize'
     | '/studio/preview'
+    | '/studio/return'
     | '/studio'
+    | '/studio/order/$id'
   id:
     | '__root__'
     | '/'
@@ -178,7 +200,9 @@ export interface FileRouteTypes {
     | '/studio/create'
     | '/studio/customize'
     | '/studio/preview'
+    | '/studio/return'
     | '/studio/'
+    | '/studio/order/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -242,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioIndexRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/studio/return': {
+      id: '/studio/return'
+      path: '/return'
+      fullPath: '/studio/return'
+      preLoaderRoute: typeof StudioReturnRouteImport
+      parentRoute: typeof StudioRoute
+    }
     '/studio/preview': {
       id: '/studio/preview'
       path: '/preview'
@@ -284,6 +315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGelatoWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/studio/order/$id': {
+      id: '/studio/order/$id'
+      path: '/order/$id'
+      fullPath: '/studio/order/$id'
+      preLoaderRoute: typeof StudioOrderIdRouteImport
+      parentRoute: typeof StudioRoute
+    }
   }
 }
 
@@ -293,7 +331,9 @@ interface StudioRouteChildren {
   StudioCreateRoute: typeof StudioCreateRoute
   StudioCustomizeRoute: typeof StudioCustomizeRoute
   StudioPreviewRoute: typeof StudioPreviewRoute
+  StudioReturnRoute: typeof StudioReturnRoute
   StudioIndexRoute: typeof StudioIndexRoute
+  StudioOrderIdRoute: typeof StudioOrderIdRoute
 }
 
 const StudioRouteChildren: StudioRouteChildren = {
@@ -302,7 +342,9 @@ const StudioRouteChildren: StudioRouteChildren = {
   StudioCreateRoute: StudioCreateRoute,
   StudioCustomizeRoute: StudioCustomizeRoute,
   StudioPreviewRoute: StudioPreviewRoute,
+  StudioReturnRoute: StudioReturnRoute,
   StudioIndexRoute: StudioIndexRoute,
+  StudioOrderIdRoute: StudioOrderIdRoute,
 }
 
 const StudioRouteWithChildren =
@@ -320,3 +362,12 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
