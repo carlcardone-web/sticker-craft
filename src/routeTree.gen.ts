@@ -21,6 +21,7 @@ import { Route as StudioCustomizeRouteImport } from './routes/studio.customize'
 import { Route as StudioCreateRouteImport } from './routes/studio.create'
 import { Route as StudioCheckoutRouteImport } from './routes/studio.checkout'
 import { Route as StudioBottleRouteImport } from './routes/studio.bottle'
+import { Route as ApiGelatoWebhookRouteImport } from './routes/api.gelato-webhook'
 
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
@@ -82,6 +83,11 @@ const StudioBottleRoute = StudioBottleRouteImport.update({
   path: '/bottle',
   getParentRoute: () => StudioRoute,
 } as any)
+const ApiGelatoWebhookRoute = ApiGelatoWebhookRouteImport.update({
+  id: '/api/gelato-webhook',
+  path: '/api/gelato-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/studio': typeof StudioRouteWithChildren
+  '/api/gelato-webhook': typeof ApiGelatoWebhookRoute
   '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/api/gelato-webhook': typeof ApiGelatoWebhookRoute
   '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
@@ -118,6 +126,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/studio': typeof StudioRouteWithChildren
+  '/api/gelato-webhook': typeof ApiGelatoWebhookRoute
   '/studio/bottle': typeof StudioBottleRoute
   '/studio/checkout': typeof StudioCheckoutRoute
   '/studio/create': typeof StudioCreateRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/studio'
+    | '/api/gelato-webhook'
     | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
@@ -147,6 +157,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/api/gelato-webhook'
     | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/studio'
+    | '/api/gelato-webhook'
     | '/studio/bottle'
     | '/studio/checkout'
     | '/studio/create'
@@ -176,6 +188,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   StudioRoute: typeof StudioRouteWithChildren
+  ApiGelatoWebhookRoute: typeof ApiGelatoWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioBottleRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/api/gelato-webhook': {
+      id: '/api/gelato-webhook'
+      path: '/api/gelato-webhook'
+      fullPath: '/api/gelato-webhook'
+      preLoaderRoute: typeof ApiGelatoWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -295,6 +315,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   StudioRoute: StudioRouteWithChildren,
+  ApiGelatoWebhookRoute: ApiGelatoWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
