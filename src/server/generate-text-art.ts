@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { persistArtwork } from "@/server/upload-artwork.server";
 
 type ReferenceImage = { url: string; role?: string };
 
@@ -32,6 +34,7 @@ function buildPrompt(text: string, prompt: string, refs: ReferenceImage[], color
 }
 
 export const generateTextArt = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: Body) => {
     if (!input?.text || typeof input.text !== "string") throw new Error("Text is required");
     if (!input?.prompt || typeof input.prompt !== "string") throw new Error("Style prompt is required");
@@ -55,7 +58,7 @@ export const generateTextArt = createServerFn({ method: "POST" })
       color: typeof input.color === "string" ? input.color.slice(0, 32) : null,
     };
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("AI is not configured. Please contact support.");
 
@@ -95,5 +98,6 @@ export const generateTextArt = createServerFn({ method: "POST" })
     };
     const url = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!url) throw new Error("No image returned. Try a different prompt.");
-    return { imageUrl: url };
+    const publicUrl = await persistArtwork({ imageUrl: url, userId: context.userId });
+    return { imageUrl: publicUrl };
   });
