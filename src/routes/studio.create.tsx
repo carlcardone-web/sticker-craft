@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { RequireAuth } from "@/components/RequireAuth";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -111,7 +112,11 @@ export const Route = createFileRoute("/studio/create")({
       { name: "description", content: "Design custom stickers for bottles and cans with AI." },
     ],
   }),
-  component: CreatePage,
+  component: () => (
+    <RequireAuth>
+      <CreatePage />
+    </RequireAuth>
+  ),
 });
 
 function CreatePage() {
