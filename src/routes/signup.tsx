@@ -1,13 +1,24 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
-const searchSchema = z.object({ redirect: z.string().optional() });
+function sanitizeRedirect(r: unknown): string | undefined {
+  if (typeof r !== "string" || !r) return undefined;
+  if (!r.startsWith("/")) return undefined;
+  if (r.startsWith("//")) return undefined;
+  if (r.startsWith("/login") || r.startsWith("/signup")) return undefined;
+  return r;
+}
+
+const searchSchema = z.object({
+  redirect: z.string().optional().transform(sanitizeRedirect),
+});
 
 export const Route = createFileRoute("/signup")({
   head: () => ({ meta: [{ title: "Create account — Sticker Studio" }] }),
@@ -18,10 +29,17 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { redirect } = Route.useSearch();
   const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate({ to: (redirect as any) || "/", replace: true });
+    }
+  }, [authLoading, isAuthenticated, redirect, navigate]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -40,7 +58,7 @@ function SignupPage() {
       return;
     }
     toast.success("Check your email to confirm your account.");
-    navigate({ to: (redirect as any) || "/" });
+    navigate({ to: (redirect as any) || "/", replace: true });
   }
 
   async function handleGoogle() {
