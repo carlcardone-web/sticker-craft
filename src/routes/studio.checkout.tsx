@@ -69,7 +69,7 @@ function CheckoutPage() {
     if (!s.imageUrl) return toast.error("Generate your sticker first.");
     if (!artworkUsable) {
       return toast.error(
-        "Your artwork must be uploaded to a public URL before ordering. Please regenerate.",
+        "Your artwork must be a public HTTPS URL. Please regenerate your sticker.",
       );
     }
     setLoading(true);
