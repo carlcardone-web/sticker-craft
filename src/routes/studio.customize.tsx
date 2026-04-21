@@ -20,6 +20,7 @@ import { editStickerWithText } from "@/server/edit-sticker-with-text";
 import {
   ArrowLeft, ArrowRight, Plus, Trash2, ImagePlus, X, Sparkles, RefreshCw, Upload,
 } from "lucide-react";
+import { RequireAuth } from "@/components/RequireAuth";
 
 export const Route = createFileRoute("/studio/customize")({
   head: () => ({
@@ -28,7 +29,11 @@ export const Route = createFileRoute("/studio/customize")({
       { name: "description", content: "Add text and finish your sticker." },
     ],
   }),
-  component: CustomizePage,
+  component: () => (
+    <RequireAuth>
+      <CustomizePage />
+    </RequireAuth>
+  ),
 });
 
 const STYLE_CHIPS = [

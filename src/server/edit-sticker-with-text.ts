@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getLabelDimensions } from "@/lib/studio-store";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { persistArtwork } from "@/server/upload-artwork.server";
 
 type ReferenceImage = { url: string; role?: string };
 
@@ -56,6 +58,7 @@ function buildPrompt(
 }
 
 export const editStickerWithText = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((input: Body) => {
     if (!input?.baseImageUrl || typeof input.baseImageUrl !== "string")
       throw new Error("Base image is required");
@@ -84,7 +87,7 @@ export const editStickerWithText = createServerFn({ method: "POST" })
       color: typeof input.color === "string" ? input.color.slice(0, 32) : null,
     };
   })
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
     if (!apiKey) throw new Error("AI is not configured. Please contact support.");
 
@@ -134,5 +137,6 @@ export const editStickerWithText = createServerFn({ method: "POST" })
     };
     const url = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     if (!url) throw new Error("No image returned. Try a different prompt.");
-    return { imageUrl: url };
+    const publicUrl = await persistArtwork({ imageUrl: url, userId: context.userId });
+    return { imageUrl: publicUrl };
   });
