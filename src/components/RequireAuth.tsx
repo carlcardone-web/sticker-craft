@@ -15,7 +15,20 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" search={{ redirect: location.href } as any} />;
+    // Use a relative path (no protocol/host) and avoid sending users back to
+    // an auth page, which would create a self-referential redirect loop.
+    const path = location.pathname + (location.searchStr || "");
+    const safeRedirect =
+      path && !path.startsWith("/login") && !path.startsWith("/signup")
+        ? path
+        : undefined;
+    return (
+      <Navigate
+        to="/login"
+        search={(safeRedirect ? { redirect: safeRedirect } : {}) as any}
+        replace
+      />
+    );
   }
 
   return <>{children}</>;
