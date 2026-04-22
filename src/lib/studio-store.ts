@@ -104,6 +104,7 @@ export type StudioState = {
   setImageTransform: (patch: Partial<ImageTransform>) => void;
   resetImageTransform: () => void;
   addReferenceImage: (url: string, role?: string, weight?: number) => void;
+  updateReferenceImageUrl: (id: string, url: string) => void;
   updateReferenceImageRole: (id: string, role: string) => void;
   updateReferenceImageWeight: (id: string, weight: number) => void;
   removeReferenceImage: (id: string) => void;
@@ -123,6 +124,8 @@ const DEFAULT_TRANSFORM: ImageTransform = { scale: 1, offsetX: 0, offsetY: 0 };
 const MAX_REFERENCES = 3;
 const DEFAULT_REFERENCE_WEIGHT = 0.7;
 const MAX_IMAGE_SEED = 2_147_483_647;
+export const MAX_REFERENCE_INLINE_BYTES = 4 * 1024 * 1024;
+export const MAX_REFERENCE_TOTAL_BYTES = 6 * 1024 * 1024;
 const DEFAULT_SLIDERS = {
   realism: 40,
   hue: 150,
@@ -149,6 +152,24 @@ function createId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random()}`;
+}
+
+export function estimateReferencePayloadBytes(url: string): number {
+  if (!url) return 0;
+  if (!url.startsWith("data:")) return url.length;
+  const commaIndex = url.indexOf(",");
+  if (commaIndex === -1) return url.length;
+  const meta = url.slice(0, commaIndex);
+  const payload = url.slice(commaIndex + 1);
+  if (meta.includes(";base64")) {
+    const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+    return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+  }
+  try {
+    return new TextEncoder().encode(decodeURIComponent(payload)).length;
+  } catch {
+    return payload.length;
+  }
 }
 
 function presetSliderDefaults(presetId: string | null) {
@@ -271,6 +292,10 @@ export const useStudio = create<StudioState>()(
           if (s.referenceImages.length >= MAX_REFERENCES) return s;
           return { referenceImages: [...s.referenceImages, { id: createId(), url, role, weight }] };
         }),
+      updateReferenceImageUrl: (id, url) =>
+        set((s) => ({
+          referenceImages: s.referenceImages.map((r) => (r.id === id ? { ...r, url } : r)),
+        })),
       updateReferenceImageRole: (id, role) =>
         set((s) => ({
           referenceImages: s.referenceImages.map((r) => (r.id === id ? { ...r, role } : r)),

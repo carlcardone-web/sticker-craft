@@ -12,11 +12,26 @@ type Body = {
 };
 
 const MAX_IMAGE_SEED = 2_147_483_647;
+const MAX_REFERENCE_TOTAL_SIZE = 8_000_000;
+const IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
 
 function normalizeSeed(seed: number | null | undefined) {
   if (typeof seed !== "number" || !Number.isFinite(seed)) return null;
   const normalized = Math.abs(Math.trunc(seed)) % (MAX_IMAGE_SEED + 1);
   return normalized;
+}
+
+function summarizeReferencePayload(referenceImages: ReferenceImage[]) {
+  return referenceImages.reduce(
+    (summary, ref) => {
+      const isDataUrl = ref.url.startsWith("data:");
+      summary.totalChars += ref.url.length;
+      summary.dataUrlCount += isDataUrl ? 1 : 0;
+      summary.hostedUrlCount += isDataUrl ? 0 : 1;
+      return summary;
+    },
+    { totalChars: 0, dataUrlCount: 0, hostedUrlCount: 0 },
+  );
 }
 
 export const generateSticker = createServerFn({ method: "POST" })
@@ -39,7 +54,9 @@ export const generateSticker = createServerFn({ method: "POST" })
 
     if (refs.length > 3) throw new Error("Up to 3 reference images allowed");
     const totalSize = refs.reduce((sum, ref) => sum + ref.url.length, 0);
-    if (totalSize > 24_000_000) throw new Error("Reference images too large");
+    if (totalSize > MAX_REFERENCE_TOTAL_SIZE) {
+      throw new Error("References are too large. Try fewer or smaller images.");
+    }
 
     return {
       prompt: input.prompt.trim(),
@@ -53,6 +70,17 @@ export const generateSticker = createServerFn({ method: "POST" })
     if (!apiKey) {
       throw new Error("AI is not configured. Please contact support.");
     }
+
+    const payloadSummary = summarizeReferencePayload(data.referenceImages);
+    console.info("generateSticker request", {
+      model: IMAGE_MODEL,
+      promptLength: data.prompt.length,
+      referenceCount: data.referenceImages.length,
+      referenceChars: payloadSummary.totalChars,
+      dataUrlCount: payloadSummary.dataUrlCount,
+      hostedUrlCount: payloadSummary.hostedUrlCount,
+      seed: data.seed,
+    });
 
     const userContent = [
       {
@@ -71,7 +99,7 @@ export const generateSticker = createServerFn({ method: "POST" })
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-pro-image-preview",
+        model: IMAGE_MODEL,
         messages: [{ role: "user", content: userContent }],
         modalities: ["image", "text"],
         seed: data.seed ?? undefined,
@@ -86,8 +114,16 @@ export const generateSticker = createServerFn({ method: "POST" })
       if (res.status === 402) {
         throw new Error("AI credits are exhausted. Add credits in your workspace settings to keep generating.");
       }
+      if (res.status === 504 || res.status === 524 || res.status === 408) {
+        throw new Error("Generation took too long. Try again with fewer or smaller reference images.");
+      }
       const text = await res.text().catch(() => "");
-      console.error("Lovable AI error", res.status, text);
+      console.error("Lovable AI error", res.status, text, {
+        model: IMAGE_MODEL,
+        promptLength: data.prompt.length,
+        referenceCount: data.referenceImages.length,
+        referenceChars: payloadSummary.totalChars,
+      });
       throw new Error("Image generation failed. Please try again.");
     }
 
