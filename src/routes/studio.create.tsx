@@ -279,7 +279,10 @@ function CreatePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"describe" | "templates">("describe");
+  const [activeTab, setActiveTab] = useState<"describe" | "upload" | "templates">("describe");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [textOpen, setTextOpen] = useState(false);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(true);
 
   const activeContainer = CONTAINER_CHOICES.find((choice) => choice.id === studio.container);
   const activeShape = SHAPES.find((entry) => entry.id === studio.shape);
@@ -288,6 +291,10 @@ function CreatePage() {
     [studio.hue, studio.saturation, studio.lightness],
   );
   const liveSwatch = `hsl(${studio.hue} ${studio.saturation}% ${studio.lightness}%)`;
+  const previewCaption = useMemo(
+    () => getLabelCaption(studio.container, studio.volume, studio.shape),
+    [studio.container, studio.volume, studio.shape],
+  );
 
   const generationParams = useMemo<GenerationParams | null>(() => {
     if (!studio.container || !studio.volume) return null;
@@ -398,7 +405,7 @@ function CreatePage() {
 
   return (
     <TooltipProvider>
-      <section className="space-y-6">
+      <section className="space-y-6 pb-28 md:pb-8">
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/60 bg-muted/50 px-4 py-2.5 text-sm">
           <div className="flex min-w-0 items-center gap-2">
             <span className="shrink-0 text-muted-foreground">Designing for:</span>
@@ -411,64 +418,97 @@ function CreatePage() {
           </Link>
         </div>
 
-        <div>
+        <div className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Create your sticker</h1>
-          <p className="mt-2 text-muted-foreground">
-            Describe it, upload references, tune the controls, then generate predictable variations.
-          </p>
+          <p className="text-muted-foreground">Describe it. Preview it. Refine it.</p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-10">
-          <div className="space-y-8">
-            <div className="rounded-3xl border border-border/60 bg-card/60 p-5">
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "describe" | "templates") }>
-                <TabsList className="h-auto rounded-full bg-muted/60 p-1">
-                  <TabsTrigger value="describe" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <Sparkles className="mr-1.5 h-4 w-4" /> Describe it
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] lg:gap-10">
+          <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
+            <button
+              type="button"
+              onClick={() => setMobilePreviewOpen((open) => !open)}
+              className="flex w-full items-center justify-between rounded-[12px] border border-border/60 bg-card px-4 py-3 text-left md:hidden"
+              aria-expanded={mobilePreviewOpen}
+            >
+              <div>
+                <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Live preview</p>
+                <p className="mt-1 text-sm text-foreground">{activeContainer?.label} · {activeShape?.label}</p>
+              </div>
+              <ChevronRight className={["h-4 w-4 text-muted-foreground transition-transform", mobilePreviewOpen ? "rotate-90" : ""].join(" ")} />
+            </button>
+
+            <div className={["rounded-[12px] border border-border/60 bg-card p-5 md:p-6", mobilePreviewOpen ? "block" : "hidden md:block"].join(" ")}>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Live preview</p>
+              <div className="mt-4 overflow-hidden rounded-[12px] border border-border/50 bg-muted/25 p-3 sm:p-4">
+                <ContainerPreviewScene
+                  imageUrl={studio.imageUrl}
+                  shape={studio.shape}
+                  textLayers={studio.textLayers}
+                  whiteBorder={studio.whiteBorder}
+                  container={studio.container}
+                  volume={studio.volume}
+                  imageTransform={studio.imageTransform}
+                  size="hero"
+                  className="max-h-[300px] md:max-h-none"
+                />
+              </div>
+              {previewCaption ? <p className="mt-4 text-center text-xs tabular-nums text-muted-foreground">{previewCaption}</p> : null}
+            </div>
+          </aside>
+
+          <div className="space-y-4 md:space-y-5">
+            <div className="rounded-[12px] border border-border/60 bg-card p-5 md:p-6">
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "describe" | "upload" | "templates")}>
+                <TabsList className="grid h-auto w-full grid-cols-3 rounded-[10px] bg-muted/60 p-1">
+                  <TabsTrigger value="describe" className="rounded-[8px] px-3 py-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    Describe it
                   </TabsTrigger>
-                  <TabsTrigger value="templates" className="rounded-full px-4 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    <LayoutGrid className="mr-1.5 h-4 w-4" /> Starter ideas
+                  <TabsTrigger value="upload" className="rounded-[8px] px-3 py-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    Upload
+                  </TabsTrigger>
+                  <TabsTrigger value="templates" className="rounded-[8px] px-3 py-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm">
+                    Templates
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="describe" className="mt-6 space-y-5">
-                  <div className="space-y-2">
-                    <MentionTextarea
-                      placeholder="A botanical wreath of @subject in @color-palette tones, soft watercolor, on cream"
-                      value={studio.prompt}
-                      onChange={handlePromptChange}
-                      references={studio.referenceImages}
-                      maxLength={MAX_PROMPT_LENGTH}
-                      className="min-h-32 resize-none rounded-2xl border-border bg-card text-base shadow-sm"
-                    />
-                    <div className="flex items-center justify-between gap-3 text-xs">
-                      <p className="text-muted-foreground">
-                        Type <span className="font-mono text-primary">@</span> to reference an uploaded photo.
-                      </p>
+                <TabsContent value="describe" className="mt-5 space-y-4">
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <MentionTextarea
+                        placeholder="A botanical wreath in soft watercolor with elegant eucalyptus leaves on warm cream paper"
+                        value={studio.prompt}
+                        onChange={handlePromptChange}
+                        references={studio.referenceImages}
+                        maxLength={MAX_PROMPT_LENGTH}
+                        className="min-h-36 resize-none rounded-[12px] border-border bg-card pb-10 text-base shadow-sm"
+                      />
                       <span
                         className={[
-                          "tabular-nums",
+                          "pointer-events-none absolute bottom-3 right-3 text-xs tabular-nums",
                           studio.prompt.length > PROMPT_WARNING_LENGTH ? "text-destructive" : "text-muted-foreground",
                         ].join(" ")}
                       >
                         {studio.prompt.length}/{MAX_PROMPT_LENGTH}
                       </span>
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Type <span className="font-mono text-primary">@</span> to reference an uploaded photo.
+                    </p>
                   </div>
 
                   <div className="space-y-3">
-                    <SectionLabel label="Style preset" tooltip="Presets set stable prompt fragments plus default slider values until you override them." />
-                    <div className="flex flex-wrap gap-2">
+                    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                       {STYLE_PRESETS.map((preset) => (
                         <button
                           key={preset.id}
                           type="button"
                           onClick={() => studio.setStylePreset(studio.stylePreset === preset.id ? null : preset.id)}
                           className={[
-                            "rounded-full px-3.5 py-1.5 text-sm transition-all",
+                            "shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-all",
                             studio.stylePreset === preset.id
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                              ? "border-primary bg-primary-soft text-primary shadow-sm"
+                              : "border-border/60 bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground",
                           ].join(" ")}
                         >
                           {preset.label}
@@ -476,15 +516,17 @@ function CreatePage() {
                       ))}
                     </div>
                   </div>
+                </TabsContent>
 
+                <TabsContent value="upload" className="mt-5 space-y-4">
                   <div className="space-y-3">
-                    <SectionLabel label="Reference photos" tooltip="Upload up to three references. Each role and weight becomes explicit prompt guidance." />
+                    <p className="text-sm text-muted-foreground">Add references only when you want the AI to borrow a subject, palette, or styling cue.</p>
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       {studio.referenceImages.map((reference, index) => (
                         <ReferenceCard key={reference.id} reference={reference} index={index} />
                       ))}
                       {studio.referenceImages.length < MAX_REFS && (
-                        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-border px-3 text-center transition-colors hover:border-primary/50 hover:bg-accent/30">
+                        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-[12px] border border-dashed border-border/80 bg-muted/20 px-3 text-center transition-colors hover:border-primary/50 hover:bg-accent/20">
                           <input
                             type="file"
                             accept="image/*"
@@ -505,10 +547,7 @@ function CreatePage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="templates" className="mt-6 space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Pick one to pre-fill the prompt, shape, and preset. Slider defaults only change where you have not already overridden them.
-                  </p>
+                <TabsContent value="templates" className="mt-5 space-y-4">
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {TEMPLATES.map((template) => {
                       const styleLabel = STYLE_PRESETS.find((preset) => preset.id === template.styleId)?.label;
@@ -526,14 +565,14 @@ function CreatePage() {
                           className="group text-left"
                         >
                           <div
-                            className="relative aspect-square overflow-hidden rounded-2xl border border-border/60 shadow-soft transition-transform group-hover:-translate-y-0.5 group-hover:shadow-soft-lg"
+                            className="relative aspect-square overflow-hidden rounded-[12px] border border-border/60 shadow-soft transition-transform group-hover:-translate-y-0.5 group-hover:shadow-soft-lg"
                             style={{ backgroundImage: template.color }}
                           >
-                            {styleLabel && (
+                            {styleLabel ? (
                               <span className="absolute left-2 top-2 rounded-full bg-background/80 px-2 py-0.5 text-[10px] font-medium text-foreground/80 backdrop-blur-sm">
                                 {styleLabel}
                               </span>
-                            )}
+                            ) : null}
                             <span className="absolute inset-0 flex items-center justify-center bg-foreground/0 opacity-0 transition-opacity group-hover:bg-foreground/30 group-hover:opacity-100">
                               <span className="inline-flex items-center gap-1.5 rounded-full bg-background/95 px-3 py-1.5 text-xs font-medium shadow-sm">
                                 <Wand2 className="h-3.5 w-3.5" /> Use this
@@ -550,160 +589,190 @@ function CreatePage() {
               </Tabs>
             </div>
 
-            <div className="rounded-3xl border border-border/60 bg-card/60 p-5">
-              <SectionLabel label="Shape" tooltip="Shape affects the deterministic composition rules inside the prompt builder." />
-              <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+            <div className="rounded-[12px] border border-border/60 bg-card p-5 md:p-6">
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
                 {SHAPES.map(({ id, label, Icon }) => (
                   <button
                     key={id}
                     type="button"
                     onClick={() => studio.setShape(id)}
                     className={[
-                      "flex flex-col items-center gap-1 rounded-xl border p-2 transition-all",
-                      studio.shape === id ? "border-primary bg-primary-soft shadow-sm" : "border-border bg-background hover:border-primary/40",
+                      "flex aspect-square flex-col items-center justify-center gap-2 rounded-[10px] border px-2 py-3 text-center transition-all",
+                      studio.shape === id
+                        ? "border-2 border-primary text-primary"
+                        : "border border-border/60 text-muted-foreground hover:border-primary/40 hover:text-foreground",
                     ].join(" ")}
                   >
-                    <Icon className="h-4 w-4" />
-                    <span className="text-[10px] font-medium leading-tight">{label}</span>
+                    <Icon className="h-5 w-5" />
+                    <span className="text-[11px] font-medium leading-tight">{label}</span>
                   </button>
                 ))}
               </div>
             </div>
-          </div>
 
-          <aside className="self-start lg:sticky lg:top-28">
-            <div className="space-y-5 rounded-3xl border border-border/60 bg-card p-5 shadow-soft">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Customization</p>
-                <p className="mt-1 text-sm text-muted-foreground">{activeContainer?.emoji} {activeContainer?.label} · {activeShape?.label} label</p>
-              </div>
-
-              <div className="space-y-5">
-                {SLIDER_META.map((slider) => (
-                  <SliderField
-                    key={slider.key}
-                    slider={slider}
-                    value={studio[slider.key]}
-                    onChange={(value) => studio.setSliderValue(slider.key, value, true)}
-                    trackStyle={slider.key === "hue" ? { backgroundImage: "linear-gradient(90deg, hsl(0 80% 55%), hsl(60 80% 55%), hsl(120 70% 45%), hsl(180 70% 45%), hsl(240 80% 60%), hsl(300 75% 60%), hsl(360 80% 55%))" } : undefined}
-                  >
-                    {slider.key === "hue" ? (
-                      <div className="mt-3 rounded-2xl border border-border/60 bg-muted/40 p-3">
-                        <div className="flex items-center gap-3">
-                          <span className="h-8 w-8 rounded-full border border-border shadow-sm" style={{ backgroundColor: liveSwatch }} />
-                          <div>
-                            <p className="text-sm font-medium">{resolvedColorName}</p>
-                            <p className="text-xs text-muted-foreground">≈ {resolvedColorName}</p>
-                          </div>
+            <div className="rounded-[12px] border border-border/60 bg-card p-5 md:p-6">
+              <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+                <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">⚙ Advanced: realism, color, seed</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Adjust these when you want tighter control over style consistency.</p>
+                  </div>
+                  <ChevronRight className={["h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", advancedOpen ? "rotate-90" : ""].join(" ")} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <div className="mt-5 space-y-5 border-t border-border/60 pt-5">
+                    {SLIDER_META.map((slider, index) => (
+                      <div key={slider.key} className="space-y-3">
+                        {index > 0 ? <div className="border-t border-border/50" /> : null}
+                        <div className={index > 0 ? "pt-5" : ""}>
+                          <SliderField
+                            slider={slider}
+                            value={studio[slider.key]}
+                            onChange={(value) => studio.setSliderValue(slider.key, value, true)}
+                            trackStyle={slider.key === "hue" ? { backgroundImage: "linear-gradient(90deg, hsl(0 80% 55%), hsl(60 80% 55%), hsl(120 70% 45%), hsl(180 70% 45%), hsl(240 80% 60%), hsl(300 75% 60%), hsl(360 80% 55%))" } : undefined}
+                          >
+                            {slider.key === "hue" ? (
+                              <div className="mt-3 flex items-center gap-3 rounded-[10px] bg-muted/35 p-3">
+                                <span className="h-9 w-9 rounded-full border border-border/70 shadow-sm" style={{ backgroundColor: liveSwatch }} />
+                                <div>
+                                  <p className="text-sm font-medium text-foreground">{resolvedColorName}</p>
+                                  <p className="text-xs text-muted-foreground">≈ {resolvedColorName}</p>
+                                </div>
+                              </div>
+                            ) : null}
+                          </SliderField>
                         </div>
                       </div>
-                    ) : null}
-                  </SliderField>
-                ))}
-              </div>
+                    ))}
 
-              <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <Label htmlFor="lock-seed" className="text-sm font-medium">Lock seed</Label>
-                    <p className="text-xs text-muted-foreground">Keep the same visual base across regenerations.</p>
+                    <div className="border-t border-border/50 pt-5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <Label htmlFor="lock-seed" className="text-sm font-medium">Lock seed</Label>
+                          <p className="text-xs text-muted-foreground">Keep the same visual base across regenerations.</p>
+                        </div>
+                        <Switch id="lock-seed" checked={studio.lockSeed} onCheckedChange={studio.setLockSeed} />
+                      </div>
+                      <p className="mt-3 text-xs text-muted-foreground">Current seed: {studio.seed ?? "Auto"}</p>
+                    </div>
+
+                    <div className="border-t border-border/50 pt-5">
+                      <ImageFramingControls compact />
+                    </div>
                   </div>
-                  <Switch id="lock-seed" checked={studio.lockSeed} onCheckedChange={studio.setLockSeed} />
-                </div>
-                <p className="mt-3 text-xs text-muted-foreground">Current seed: {studio.seed ?? "Auto"}</p>
-              </div>
-
-              <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <SectionLabel label="Live preview" tooltip="The preview uses your current artwork, framing, border, and editable text layers." compact />
-                </div>
-                <div className="flex min-h-[260px] items-center justify-center rounded-2xl border border-border/50 bg-background/70 px-2 py-4">
-                  <StickerArtwork
-                    imageUrl={studio.imageUrl}
-                    shape={studio.shape}
-                    textLayers={studio.textLayers}
-                    whiteBorder={studio.whiteBorder}
-                    container={studio.container}
-                    volume={studio.volume}
-                    size={240}
-                    showDimensions
-                    showScaleHint
-                    imageTransform={studio.imageTransform}
-                  />
-                </div>
-              </div>
-
-              <ImageFramingControls />
-
-              <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="border-toggle" className="text-sm font-medium">White die-cut border</Label>
-                  <Switch id="border-toggle" checked={studio.whiteBorder} onCheckedChange={studio.setWhiteBorder} />
-                </div>
-              </div>
-
-              <TextLayerEditor />
-
-              {error && (
-                <div className="flex items-start gap-2 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
-                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <Button
-                  onClick={() => runGeneration("fresh")}
-                  disabled={loading || !studio.prompt.trim() || !built}
-                  size="lg"
-                  className="w-full rounded-full bg-gradient-sage text-primary-foreground shadow-glow hover:opacity-95"
-                >
-                  {loading ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Designing your sticker…
-                    </>
-                  ) : studio.imageUrl ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" /> Regenerate
-                    </>
-                  ) : (
-                    "Generate"
-                  )}
-                </Button>
-                {studio.imageUrl && (
-                  <Button
-                    variant="outline"
-                    onClick={() => runGeneration("reuse")}
-                    disabled={loading || !studio.lastGeneration}
-                    className="w-full rounded-full"
-                  >
-                    <Sparkles className="mr-2 h-4 w-4" /> Regenerate with same seed
-                  </Button>
-                )}
-                <Button asChild disabled={!studio.imageUrl} size="lg" className="w-full rounded-full">
-                  <Link to="/studio/preview">
-                    Continue <ArrowRight className="ml-1 h-4 w-4" />
-                  </Link>
-                </Button>
-              </div>
-
-              {import.meta.env.DEV && studio.lastGeneration && built && (
-                <Collapsible className="rounded-2xl border border-border/60 bg-muted/30 p-4">
-                  <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
-                    Debug
-                    <span className="text-xs text-muted-foreground">Seed {studio.lastGeneration.seed}</span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-3 pt-3 text-xs text-muted-foreground">
-                    <DebugRow label="Seed" value={String(studio.lastGeneration.seed)} />
-                    <DebugRow label="Color" value={resolvedColorName} />
-                    <DebugRow label="Prompt" value={studio.lastGeneration.prompt} multiline />
-                    <DebugRow label="Negative" value={studio.lastGeneration.negativePrompt} multiline />
-                    <DebugRow label="Params" value={JSON.stringify(studio.lastGeneration.params, null, 2)} multiline />
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
+                </CollapsibleContent>
+              </Collapsible>
             </div>
-          </aside>
+
+            <div className="rounded-[12px] border border-border/60 bg-card p-5 md:p-6">
+              <Collapsible open={textOpen} onOpenChange={setTextOpen}>
+                <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">+ Add text overlay</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Optional</p>
+                  </div>
+                  <ChevronRight className={["h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", textOpen ? "rotate-90" : ""].join(" ")} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                  <div className="mt-5 border-t border-border/60 pt-5">
+                    <TextLayerEditor compact />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            </div>
+
+            <div className="rounded-[12px] border border-border/60 bg-card px-5 py-4 md:px-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label htmlFor="border-toggle" className="text-sm font-medium">White die-cut border</Label>
+                </div>
+                <Switch id="border-toggle" checked={studio.whiteBorder} onCheckedChange={studio.setWhiteBorder} />
+              </div>
+            </div>
+
+            {error ? (
+              <div className="flex items-start gap-2 rounded-[12px] bg-destructive/10 p-3 text-sm text-destructive">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            ) : null}
+
+            <div className="rounded-[12px] border border-border/60 bg-card p-5 md:p-6">
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    onClick={() => runGeneration("fresh")}
+                    disabled={loading || !studio.prompt.trim() || !built}
+                    size="lg"
+                    className="flex-1 rounded-full bg-foreground text-background hover:opacity-95"
+                    title={!studio.prompt.trim() ? "Add a description to generate" : undefined}
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Designing your sticker…
+                      </>
+                    ) : (
+                      "Generate sticker"
+                    )}
+                  </Button>
+                  {studio.imageUrl ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => runGeneration("reuse")}
+                      disabled={loading || !studio.lastGeneration}
+                      size="lg"
+                      className="rounded-full px-4"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      <span className="sr-only">Regenerate</span>
+                    </Button>
+                  ) : null}
+                </div>
+
+                {studio.imageUrl ? (
+                  <Button asChild variant="outline" size="lg" className="w-full rounded-full">
+                    <Link to="/studio/preview">
+                      Continue <ArrowRight className="ml-1 h-4 w-4" />
+                    </Link>
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            {import.meta.env.DEV && studio.lastGeneration && built ? (
+              <Collapsible className="rounded-[12px] border border-border/60 bg-card p-5 md:p-6">
+                <CollapsibleTrigger className="flex w-full items-center justify-between text-left text-sm font-medium">
+                  Debug
+                  <span className="text-xs text-muted-foreground">Seed {studio.lastGeneration.seed}</span>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-3 pt-4 text-xs text-muted-foreground">
+                  <DebugRow label="Seed" value={String(studio.lastGeneration.seed)} />
+                  <DebugRow label="Color" value={resolvedColorName} />
+                  <DebugRow label="Prompt" value={studio.lastGeneration.prompt} multiline />
+                  <DebugRow label="Negative" value={studio.lastGeneration.negativePrompt} multiline />
+                  <DebugRow label="Params" value={JSON.stringify(studio.lastGeneration.params, null, 2)} multiline />
+                </CollapsibleContent>
+              </Collapsible>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/60 bg-background/95 p-3 backdrop-blur md:hidden">
+          <Button
+            onClick={() => runGeneration("fresh")}
+            disabled={loading || !studio.prompt.trim() || !built}
+            size="lg"
+            className="w-full rounded-full bg-foreground text-background hover:opacity-95"
+            title={!studio.prompt.trim() ? "Add a description to generate" : undefined}
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Designing your sticker…
+              </>
+            ) : (
+              "Generate sticker"
+            )}
+          </Button>
         </div>
       </section>
     </TooltipProvider>
