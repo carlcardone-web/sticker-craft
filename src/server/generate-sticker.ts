@@ -11,6 +11,14 @@ type Body = {
   referenceImages?: ReferenceImage[] | null;
 };
 
+const MAX_IMAGE_SEED = 2_147_483_647;
+
+function normalizeSeed(seed: number | null | undefined) {
+  if (typeof seed !== "number" || !Number.isFinite(seed)) return null;
+  const normalized = Math.abs(Math.trunc(seed)) % (MAX_IMAGE_SEED + 1);
+  return normalized;
+}
+
 export const generateSticker = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: Body) => {
@@ -36,7 +44,7 @@ export const generateSticker = createServerFn({ method: "POST" })
     return {
       prompt: input.prompt.trim(),
       negativePrompt: typeof input.negativePrompt === "string" ? input.negativePrompt.slice(0, 1200) : "",
-      seed: typeof input.seed === "number" && Number.isFinite(input.seed) ? Math.round(input.seed) : null,
+      seed: normalizeSeed(input.seed),
       referenceImages: refs,
     };
   })
