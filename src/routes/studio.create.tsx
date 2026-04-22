@@ -282,7 +282,7 @@ function CreatePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"describe" | "upload" | "templates">("describe");
+  const [activeTab, setActiveTab] = useState<"describe" | "templates">("describe");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [textOpen, setTextOpen] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(true);
@@ -490,13 +490,10 @@ function CreatePage() {
 
           <div className="space-y-4 md:space-y-5">
             <div className="rounded-[12px] border border-border/60 bg-card p-5 md:p-6">
-              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "describe" | "upload" | "templates")}>
-                <TabsList className="grid h-auto w-full grid-cols-3 rounded-[10px] bg-muted/60 p-1">
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "describe" | "templates")}>
+                <TabsList className="grid h-auto w-full grid-cols-2 rounded-[10px] bg-muted/60 p-1">
                   <TabsTrigger value="describe" className="rounded-[8px] px-3 py-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm">
                     Describe it
-                  </TabsTrigger>
-                  <TabsTrigger value="upload" className="rounded-[8px] px-3 py-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                    Upload
                   </TabsTrigger>
                   <TabsTrigger value="templates" className="rounded-[8px] px-3 py-2 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm">
                     Templates
@@ -529,6 +526,55 @@ function CreatePage() {
                   </div>
 
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Reference images</p>
+                        <p className="text-xs text-muted-foreground">Upload subject, palette, or style cues right below your prompt.</p>
+                      </div>
+                      {studio.referenceImages.length < MAX_REFS ? (
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border/60 bg-background px-3 py-2 text-sm text-foreground transition-colors hover:border-primary/50 hover:text-primary">
+                          <ImagePlus className="h-4 w-4" />
+                          Upload reference
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => {
+                              onReferenceUpload(e.target.files);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      ) : null}
+                    </div>
+
+                    {studio.referenceImages.length > 0 ? (
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {studio.referenceImages.map((reference, index) => (
+                          <ReferenceCard key={reference.id} reference={reference} index={index} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-[12px] border border-dashed border-border/70 bg-muted/20 px-4 py-5 text-sm text-muted-foreground">
+                        No references yet. Add one if you want the model to borrow a subject, palette, or style cue.
+                      </div>
+                    )}
+
+                    {referencePayload.totalBytes > 0 ? (
+                      <p className={[
+                        "text-xs",
+                        referencePayload.totalBytes > MAX_REFERENCE_TOTAL_BYTES ? "text-destructive" : "text-muted-foreground",
+                      ].join(" ")}>
+                        Reference load: {(referencePayload.totalBytes / (1024 * 1024)).toFixed(1)} MB
+                        {referencePayload.totalBytes > MAX_REFERENCE_TOTAL_BYTES
+                          ? " — too large for reliable generation."
+                          : " — within the safe range for generation."}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-3">
                     <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                       {STYLE_PRESETS.map((preset) => (
                         <button
@@ -545,35 +591,6 @@ function CreatePage() {
                           {preset.label}
                         </button>
                       ))}
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="upload" className="mt-5 space-y-4">
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">Add references only when you want the AI to borrow a subject, palette, or styling cue.</p>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                      {studio.referenceImages.map((reference, index) => (
-                        <ReferenceCard key={reference.id} reference={reference} index={index} />
-                      ))}
-                      {studio.referenceImages.length < MAX_REFS && (
-                        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-[12px] border border-dashed border-border/80 bg-muted/20 px-3 text-center transition-colors hover:border-primary/50 hover:bg-accent/20">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="hidden"
-                            onChange={(e) => {
-                              onReferenceUpload(e.target.files);
-                              e.target.value = "";
-                            }}
-                          />
-                          <ImagePlus className="h-5 w-5 text-muted-foreground" />
-                          <span className="text-xs text-muted-foreground">
-                            {studio.referenceImages.length === 0 ? "Add references" : "Add another"}
-                          </span>
-                        </label>
-                      )}
                     </div>
                   </div>
                 </TabsContent>
