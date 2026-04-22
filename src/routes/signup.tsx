@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, type FormEvent } from "react";
 import { z } from "zod";
+import { lovable } from "@/integrations/lovable";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
@@ -62,11 +63,21 @@ function SignupPage() {
   }
 
   async function handleGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + (redirect || "/") },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + (redirect || "/"),
+      extraParams: {
+        prompt: "select_account",
+      },
     });
-    if (error) toast.error(error.message);
+
+    if (result.redirected) return;
+    if (result.error) {
+      toast.error("Google sign-in is unavailable right now. You can still create an account with email.");
+      return;
+    }
+
+    toast.success("Account created.");
+    navigate({ to: (redirect as any) || "/", replace: true });
   }
 
   return (
