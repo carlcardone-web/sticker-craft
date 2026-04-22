@@ -15,7 +15,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   CONTAINER_CHOICES,
+  MAX_REFERENCE_INLINE_BYTES,
+  MAX_REFERENCE_TOTAL_BYTES,
   STYLE_PRESETS,
+  estimateReferencePayloadBytes,
   useStudio,
   type GenerationParams,
   type ReferenceImage,
@@ -27,6 +30,7 @@ import { buildPrompt, nearestNamedColor, normalizeForModeration } from "@/lib/pr
 import { FONT_LIBRARY, ensureFontLoaded, detectFontFormat, getFontFamilyCSS, type FontCategory } from "@/lib/fonts";
 import { generateSticker } from "@/server/generate-sticker";
 import { editStickerWithText } from "@/server/edit-sticker-with-text";
+import { uploadReferenceImage } from "@/server/upload-reference.functions";
 import {
   ArrowRight,
   Circle,
@@ -64,6 +68,7 @@ const BLOCKLIST = [
 const MAX_PROMPT_LENGTH = 300;
 const PROMPT_WARNING_LENGTH = 250;
 const MAX_REFS = 3;
+const MAX_REFERENCE_FILE_SIZE = 6 * 1024 * 1024;
 const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
 const TEXT_REF_ROLES = ["Font style", "Color palette", "Mood"];
 const STYLE_CHIPS = [
@@ -293,6 +298,11 @@ function CreatePage() {
     () => getLabelCaption(studio.container, studio.volume, studio.shape),
     [studio.container, studio.volume, studio.shape],
   );
+  const referencePayload = useMemo(() => {
+    const totalBytes = studio.referenceImages.reduce((sum, reference) => sum + estimateReferencePayloadBytes(reference.url), 0);
+    const inlineCount = studio.referenceImages.filter((reference) => reference.url.startsWith("data:")).length;
+    return { totalBytes, inlineCount };
+  }, [studio.referenceImages]);
 
   const generationParams = useMemo<GenerationParams | null>(() => {
     if (!studio.container || !studio.volume) return null;
@@ -338,6 +348,14 @@ function CreatePage() {
     const moderationError = moderate(studio.prompt);
     if (moderationError) {
       setError(moderationError);
+      return;
+    }
+    if (referencePayload.totalBytes > MAX_REFERENCE_TOTAL_BYTES) {
+      setError("Your references are too heavy to generate reliably. Remove one or upload a smaller image.");
+      return;
+    }
+    if (referencePayload.inlineCount > 0 && referencePayload.totalBytes > MAX_REFERENCE_INLINE_BYTES) {
+      setError("A reference is still too large to process. Try re-uploading a smaller image.");
       return;
     }
 
@@ -387,14 +405,29 @@ function CreatePage() {
     Array.from(files)
       .slice(0, remaining)
       .forEach((file) => {
-        if (file.size > 8 * 1024 * 1024) {
-          toast.error(`${file.name} is over 8MB and was skipped.`);
+        if (file.size > MAX_REFERENCE_FILE_SIZE) {
+          toast.error(`${file.name} is over 6MB and was skipped.`);
           return;
         }
         const reader = new FileReader();
-        reader.onload = () => {
-          studio.addReferenceImage(reader.result as string, "Subject", 0.7);
+        reader.onload = async () => {
+          const dataUrl = reader.result as string;
+          const estimatedBytes = estimateReferencePayloadBytes(dataUrl);
+          if (estimatedBytes > MAX_REFERENCE_INLINE_BYTES) {
+            toast.error(`${file.name} is too large after encoding. Try a smaller image.`);
+            return;
+          }
+          try {
+            const { imageUrl } = await uploadReferenceImage({ data: { imageUrl: dataUrl } });
+            studio.addReferenceImage(imageUrl, "Subject", 0.7);
+            setError(null);
+            toast.success(`${file.name} added as a reference.`);
+          } catch (e) {
+            const message = e instanceof Error ? e.message : "Could not upload reference image.";
+            toast.error(message);
+          }
         };
+        reader.onerror = () => toast.error(`Could not read ${file.name}.`);
         reader.readAsDataURL(file);
       });
   }
