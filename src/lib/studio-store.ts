@@ -122,6 +122,7 @@ export type StudioState = {
 const DEFAULT_TRANSFORM: ImageTransform = { scale: 1, offsetX: 0, offsetY: 0 };
 const MAX_REFERENCES = 3;
 const DEFAULT_REFERENCE_WEIGHT = 0.7;
+const MAX_IMAGE_SEED = 2_147_483_647;
 const DEFAULT_SLIDERS = {
   realism: 40,
   hue: 150,
@@ -139,9 +140,9 @@ const DEFAULT_DIRTY: Record<SliderKey, boolean> = {
 
 function createSeed() {
   if (typeof crypto !== "undefined" && "getRandomValues" in crypto) {
-    return crypto.getRandomValues(new Uint32Array(1))[0];
+    return crypto.getRandomValues(new Uint32Array(1))[0] % (MAX_IMAGE_SEED + 1);
   }
-  return Math.floor(Math.random() * 2_147_483_647);
+  return Math.floor(Math.random() * (MAX_IMAGE_SEED + 1));
 }
 
 function createId() {
