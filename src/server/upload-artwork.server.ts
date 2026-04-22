@@ -79,3 +79,10 @@ export async function persistArtwork(opts: {
   const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(fileName);
   return data.publicUrl;
 }
+
+export async function persistReferenceImage(opts: {
+  imageUrl: string;
+  userId: string;
+}): Promise<string> {
+  return persistArtwork(opts);
+}
