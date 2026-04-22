@@ -135,8 +135,10 @@ export function StickerArtwork({
                   }}
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground p-4 text-center">
-                  Your label will appear here
+                <div className="flex h-full w-full items-center justify-center p-4">
+                  <div className="flex h-full w-full items-center justify-center rounded-[inherit] border border-dashed border-border/70 bg-background/70 px-4 text-center text-xs text-muted-foreground">
+                    Your label appears here
+                  </div>
                 </div>
               )}
               {textLayers.map((l) => {
