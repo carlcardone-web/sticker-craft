@@ -1,79 +1,212 @@
 
-## Fix the login black screen and Google auth error
+## Refactor the sticker generation flow for deterministic, reproducible output
 
-**What’s happening**
+### 1) Add a pure deterministic prompt module
+Create `src/lib/prompt-builder.ts` as the single source of truth for prompt assembly.
 
-There are two separate auth outcomes in the project right now:
+What it will contain:
+- The provided `buildPrompt(input)` implementation
+- `normalizeForModeration(text)`
+- Supporting exports needed by the UI:
+  - `NAMED_COLORS`
+  - `nearestNamedColor(...)`
+  - the prompt input/output types
 
-1. **Email/password login** is reaching the backend and failing with `invalid_credentials`, which means the form works but the entered email/password combination is not being accepted.
-2. **Google login** is using `supabase.auth.signInWithOAuth({ provider: "google" })`, and the response `Unsupported provider: provider is not enabled` indicates the Google OAuth flow is not correctly enabled for the environment being used.
+Behavior:
+- Prompt parts will always be assembled in the same canonical order
+- Identical inputs will always produce identical `prompt` and `negativePrompt`
+- Shape/container composition text will live only here to avoid duplication elsewhere
 
-Because this project runs on Lovable Cloud and is currently **not published**, Google sign-in in preview is especially likely to fail unless it is wired through Lovable Cloud’s managed OAuth flow.
+### 2) Extend studio state for reproducible generation
+Refactor `src/lib/studio-store.ts` to support the new structured inputs and generation history.
 
-## What to change
+Add to state:
+- New slider fields:
+  - `realism`
+  - `hue`
+  - `saturation`
+  - `lightness`
+  - `colorInfluence`
+- Per-slider “dirty” tracking so preset defaults only apply until the user manually changes them
+- Reference image weight on `ReferenceImage`
+- `lastGeneration`:
+  - `prompt`
+  - `negativePrompt`
+  - `seed`
+  - `params`
+- Seed controls:
+  - `lockSeed`
+  - current `seed`
 
-### 1. Replace direct Google OAuth calls with Lovable Cloud managed OAuth
-Update both auth pages so Google sign-in no longer uses the raw Supabase client.
+Update existing data:
+- Extend each entry in `STYLE_PRESETS` with:
+  - `promptFragment`
+  - `negativeFragment`
+  - optional default slider values
+- Add store actions for:
+  - updating sliders
+  - marking sliders dirty
+  - updating reference image weight
+  - persisting `lastGeneration`
+  - toggling seed lock
+  - generating/reusing seeds
+- Update `STEPS` to reflect the merged flow
 
-**Files:**
-- `src/routes/login.tsx`
-- `src/routes/signup.tsx`
+### 3) Move generation request shape from “raw fields” to “resolved prompt”
+Refactor the create flow so the client computes the final deterministic prompt before calling the server.
 
-**Change:**
-- Replace `supabase.auth.signInWithOAuth({ provider: "google", ... })`
-- Use the Lovable Cloud auth client (`lovable.auth.signInWithOAuth("google", ...)`) instead
-- Keep the existing redirect behavior after successful auth
+Changes in `src/routes/studio.create.tsx`:
+- Replace the current raw `generateSticker({ prompt, stylePreset, container, shape, volume... })` call
+- Build a structured payload from store state
+- Call `buildPrompt(...)`
+- Send:
+  - `prompt`
+  - `negativePrompt`
+  - `seed`
+  - `referenceImages`
 
-This aligns the app with the project’s backend/auth environment and avoids the unsupported-provider path currently returning the black screen.
+Changes in `src/server/generate-sticker.ts`:
+- Remove the local ad-hoc prompt builder
+- Accept the new input contract:
+  - `prompt`
+  - `negativePrompt`
+  - `seed?`
+  - `referenceImages`
+- Validate and forward `negativePrompt` and `seed` to the image model request
+- Keep auth and artwork persistence intact
 
-### 2. Add graceful error handling for OAuth failures
-The current flow can surface a raw JSON error screen. Add safer handling so users stay in the app and see a toast or inline error instead of a blank/black screen.
+### 4) Merge “Customize” into “Create your sticker”
+Unify the current `/studio/create` and `/studio/customize` responsibilities into a single creation screen.
 
-**Implementation details:**
-- Wrap Google auth launch in defensive handling
-- If the auth client returns an error, show a user-friendly message
-- Avoid navigating away unless the OAuth flow actually redirects
+`src/routes/studio.create.tsx` will become the one primary editor containing:
+- prompt textarea
+- reference images
+- style preset chips
+- shape picker
+- all five new sliders
+- generate controls
+- existing live preview
 
-### 3. Ensure Google auth is enabled through Lovable Cloud tooling
-Because this project does not yet have the Lovable Cloud auth integration files, the Google provider should be reconfigured using the social auth tooling rather than hand-written client code.
+Layout:
+- Desktop: two columns
+  - left: prompt, templates, references, shape, style
+  - right: sticky customization card with sliders, seed controls, preview, generate/regenerate buttons
+- Mobile: vertical stack
 
-**Expected result:**
-- Lovable-managed OAuth files are scaffolded
-- Google sign-in is connected using the supported auth path for this stack
+Compatibility:
+- Keep `src/routes/studio.customize.tsx`, but convert it into a redirect/compatibility route back to `/studio/create` so old links do not break
+- Update preview/back buttons and step navigation to point to the merged create page
 
-### 4. Verify preview-vs-published behavior
-This project currently has **no published URL**. If Google auth still fails after moving to the managed flow, treat preview-only failure as an environment issue rather than an app-code bug.
+### 5) Add the five sliders with live deterministic color feedback
+Implement the new controls in the merged create screen using the existing shadcn slider.
 
-**Plan:**
-- Publish the project
-- Test Google sign-in on the published URL
-- If it works there, keep the code and document preview limitations
-- Do not change redirect URIs or invent custom OAuth workarounds for preview-only failures
+Sliders:
+- Realism (0–100)
+- Color hue (0–360)
+- Color saturation (0–100)
+- Color lightness (0–100)
+- Color influence (0–100)
 
-### 5. Keep email/password auth as the fallback path
-The network logs show email/password requests are functioning technically, but the credentials entered were rejected.
+UI details:
+- Each control gets:
+  - label
+  - tooltip
+  - live numeric/value readout
+- Hue slider gets:
+  - rainbow-style track
+  - live HSL swatch
+  - resolved named-color label using `nearestNamedColor(h, s, l)`
+  - label updates whenever hue, saturation, or lightness changes
+- Realism and color influence show endpoint captions:
+  - `Cartoon / Illustrated` → `Photorealistic`
+  - `Subtle hint` → `Dominant`
 
-**No code fix needed for that specific error unless desired**, but I would:
-- keep the email/password flow intact
-- improve the login error message copy so users understand it is a credential problem, not an app crash
+Preset behavior:
+- When a user selects a preset, apply preset slider defaults only for sliders the user has not manually touched yet
 
-## Files likely involved
+### 6) Add seed locking and reproducibility controls
+In the merged create screen:
+- Add a `Lock seed` toggle
+- Add `Regenerate with same seed` beside the existing regenerate action
 
-- `src/routes/login.tsx`
-- `src/routes/signup.tsx`
-- generated Lovable auth integration files (via tooling, not manual editing)
+Behavior:
+- If seed is unlocked, generate a new seed when creating a fresh variation
+- If locked, reuse the existing seed
+- After every successful generation, persist `lastGeneration = { prompt, negativePrompt, seed, params }`
 
-## Technical notes
+Debug UI:
+- Add a small collapsible `Debug` panel below the preview
+- Gate it behind `import.meta.env.DEV`
+- Show:
+  - seed
+  - resolved prompt
+  - negative prompt
+  - resolved color name
+  - structured params summary
 
-- Current issue source for Google login: direct use of `supabase.auth.signInWithOAuth(...)`
-- Recommended path for this project: Lovable Cloud managed OAuth client
-- The black screen is the external OAuth error surfacing directly instead of being contained in the app UI
-- Email/password is not broken at the transport level; the backend is returning a standard invalid-credentials response
+### 7) Soft-cap the prompt textarea at 300 chars
+Refine the prompt input in `src/routes/studio.create.tsx` and keep `MentionTextarea` compatible.
 
-## Expected outcome
+Behavior:
+- Live character counter
+- Warning state after 250 chars
+- Hard block past 300 chars
+- Preserve mention insertion behavior without allowing overflow
 
-After this change:
-- Google sign-in uses the supported auth path
-- users no longer see the raw black-screen JSON error
-- preview/published behavior can be separated cleanly
-- email/password remains available even if Google auth is temporarily unavailable
+Moderation:
+- Replace current moderation with:
+  - `normalizeForModeration(text)`
+  - then blocklist matching on normalized text
+
+### 8) Add reference-image weights and role-labeled instructions
+Extend the reference image model and UI.
+
+State changes:
+- `ReferenceImage` gains `weight?: number`
+
+UI changes:
+- Each reference card gets:
+  - existing role input
+  - new weight slider (0.2–1.0, default 0.7)
+  - visible strength label if helpful (`light`, `guided`, `strong`)
+
+Prompt behavior:
+- `buildPrompt` consumes both role and weight via `referenceInstructions(...)`
+
+### 9) Remove duplicated composition logic from the old flow
+Clean up the prompt pipeline so shape/container instructions are not appended in multiple places.
+
+Specifically:
+- Eliminate the old `STYLE_HINTS`, `SHAPE_HINTS`, `CONTAINER_HINTS`, dimension/conflict composition assembly from `src/server/generate-sticker.ts`
+- Keep only one prompt composition system in `src/lib/prompt-builder.ts`
+
+### 10) Fix shape icons and polish create-page semantics
+Update shape icon mapping in the create UI:
+- Replace oval’s duplicate circle icon with a more oval-looking icon or custom SVG
+- Give die-cut and rounded distinct icons
+
+Also:
+- Ensure the create page has exactly one creation section for prompt + refs + style + shape + sliders + generate
+- Preserve existing preview functionality and routing flow to preview/checkout
+
+### 11) Files to update
+Primary files:
+- `src/lib/prompt-builder.ts` (new)
+- `src/lib/studio-store.ts`
+- `src/routes/studio.create.tsx`
+- `src/server/generate-sticker.ts`
+- `src/routes/studio.customize.tsx`
+- `src/routes/studio.preview.tsx`
+- `src/components/studio/StepIndicator.tsx` or any step consumers affected by merged flow
+- `src/components/studio/MentionTextarea.tsx` if needed for capped input behavior
+
+### 12) Acceptance targets after implementation
+The refactor will be considered complete when:
+- `buildPrompt(...)` is pure and deterministic
+- the Create page is the single unified editing surface
+- the named-color label updates live from HSL changes
+- preset defaults populate untouched sliders only
+- locked-seed regeneration reuses the same seed and preserves reproducibility
+- reference roles and weights affect the final prompt deterministically
+- moderation works on normalized text
+- composition text is generated only once, from `buildPrompt`
