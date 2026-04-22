@@ -1,9 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEvent, type ComponentType, type ReactNode } from "react";
 import { toast } from "sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { MentionTextarea } from "@/components/studio/MentionTextarea";
-import { StickerArtwork } from "@/components/studio/StickerArtwork";
+import { ContainerPreviewScene, getLabelCaption } from "@/components/studio/ContainerPreviewScene";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,10 +31,8 @@ import {
   ArrowRight,
   Circle,
   HelpCircle,
+  ChevronRight,
   ImagePlus,
-  LayoutGrid,
-  Minus,
-  Pencil,
   Plus,
   RectangleHorizontal,
   RefreshCw,
@@ -807,8 +805,8 @@ function SliderField({
   slider: (typeof SLIDER_META)[number];
   value: number;
   onChange: (value: number) => void;
-  trackStyle?: React.CSSProperties;
-  children?: React.ReactNode;
+  trackStyle?: CSSProperties;
+  children?: ReactNode;
 }) {
   return (
     <div>
@@ -907,13 +905,13 @@ function ReferenceCard({ reference, index }: { reference: ReferenceImage; index:
   );
 }
 
-function ImageFramingControls() {
+function ImageFramingControls({ compact = false }: { compact?: boolean }) {
   const studio = useStudio();
 
   if (!studio.imageUrl) return null;
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+    <div className={compact ? "space-y-4" : "rounded-2xl border border-border/60 bg-muted/30 p-4"}>
       <div className="mb-3 flex items-center justify-between">
         <SectionLabel label="Image framing" tooltip="Adjust the composition of the generated art inside the sticker before previewing or ordering." compact />
         <Button variant="ghost" size="sm" onClick={studio.resetImageTransform} className="rounded-full text-xs">
@@ -961,11 +959,11 @@ function ImageFramingControls() {
   );
 }
 
-function TextLayerEditor() {
+function TextLayerEditor({ compact = false }: { compact?: boolean }) {
   const studio = useStudio();
 
   return (
-    <div className="rounded-2xl border border-border/60 bg-muted/30 p-4">
+    <div className={compact ? "space-y-4" : "rounded-2xl border border-border/60 bg-muted/30 p-4"}>
       <div className="mb-3 flex items-center justify-between">
         <SectionLabel label="Text layers" tooltip="Add live text overlays or bake stylized AI lettering directly into the artwork." compact />
         <Button variant="ghost" size="sm" onClick={studio.addTextLayer} disabled={studio.textLayers.length >= 2} className="rounded-full">
