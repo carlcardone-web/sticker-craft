@@ -16,9 +16,7 @@ function LabelDimsCaption({ container, volume, shape }: { container: string | nu
   const isFixedSquare = shape === "circle" || shape === "square" || shape === "rounded";
   const w = isFixedSquare ? Math.min(dims.w, dims.h) : dims.w;
   const h = isFixedSquare ? Math.min(dims.w, dims.h) : dims.h;
-  return (
-    <p className="mt-3 text-center text-xs text-muted-foreground tabular-nums">Label size: {w} × {h} cm</p>
-  );
+  return <p className="mt-3 text-center text-xs tabular-nums text-muted-foreground">Label size: {w} × {h} cm</p>;
 }
 
 export const Route = createFileRoute("/studio/preview")({
@@ -41,69 +39,67 @@ const CONTAINERS = [
 ];
 
 function PreviewPage() {
-  const s = useStudio();
-  const active = CONTAINERS.find((c) => c.id === s.container) ?? CONTAINERS[0];
+  const studio = useStudio();
+  const active = CONTAINERS.find((container) => container.id === studio.container) ?? CONTAINERS[0];
 
   return (
-    <div className="grid lg:grid-cols-[1fr_320px] gap-8 lg:gap-12">
+    <div className="grid gap-8 lg:grid-cols-[1fr_320px] lg:gap-12">
       <section>
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">Looks beautiful in real life</h1>
-        <p className="mt-1 text-muted-foreground text-sm">Swipe to try it on different containers.</p>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Looks beautiful in real life</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Swipe to try it on different containers.</p>
 
-        <div className="mt-6 relative rounded-3xl bg-gradient-to-b from-muted/40 to-card border border-border/60 shadow-soft overflow-hidden aspect-[4/5] sm:aspect-[5/4] flex items-center justify-center">
-          <img
-            src={active.img}
-            alt={active.label}
-            className="absolute inset-0 h-full w-full object-contain"
-          />
-          <div
-            className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
-            style={{ top: active.top, filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.18))" }}
-          >
+        <div className="relative mt-6 flex aspect-[4/5] items-center justify-center overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-b from-muted/40 to-card shadow-soft sm:aspect-[5/4]">
+          <img src={active.img} alt={active.label} className="absolute inset-0 h-full w-full object-contain" />
+          <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2" style={{ top: active.top, filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.18))" }}>
             <div style={{ transform: "perspective(600px) rotateY(-6deg)" }}>
               <StickerArtwork
-                imageUrl={s.imageUrl}
-                shape={s.shape}
-                textLayers={s.textLayers}
-                whiteBorder={s.whiteBorder}
-                container={s.container}
-                volume={s.volume}
+                imageUrl={studio.imageUrl}
+                shape={studio.shape}
+                textLayers={studio.textLayers}
+                whiteBorder={studio.whiteBorder}
+                container={studio.container}
+                volume={studio.volume}
                 size={active.stickerSize}
-                imageTransform={s.imageTransform}
+                imageTransform={studio.imageTransform}
               />
             </div>
           </div>
         </div>
-        <LabelDimsCaption container={s.container} volume={s.volume} shape={s.shape} />
+        <LabelDimsCaption container={studio.container} volume={studio.volume} shape={studio.shape} />
 
-        <div className="mt-5 flex gap-2 overflow-x-auto pb-1 -mx-2 px-2">
-          {CONTAINERS.map((c) => (
+        <div className="-mx-2 mt-5 flex gap-2 overflow-x-auto px-2 pb-1">
+          {CONTAINERS.map((container) => (
             <button
-              key={c.id}
-              onClick={() => s.setContainer(c.id)}
+              key={container.id}
+              type="button"
+              onClick={() => studio.setContainer(container.id)}
               className={[
-                "shrink-0 rounded-2xl border p-1.5 transition-all bg-card",
-                s.container === c.id ? "border-primary shadow-sm" : "border-border hover:border-primary/40",
+                "shrink-0 rounded-2xl border bg-card p-1.5 transition-all",
+                studio.container === container.id ? "border-primary shadow-sm" : "border-border hover:border-primary/40",
               ].join(" ")}
             >
-              <div className="h-16 w-14 rounded-xl overflow-hidden bg-muted">
-                <img src={c.img} alt={c.label} className="h-full w-full object-contain" />
+              <div className="h-16 w-14 overflow-hidden rounded-xl bg-muted">
+                <img src={container.img} alt={container.label} className="h-full w-full object-contain" />
               </div>
-              <p className="text-[10px] mt-1 text-center text-muted-foreground">{c.label}</p>
+              <p className="mt-1 text-center text-[10px] text-muted-foreground">{container.label}</p>
             </button>
           ))}
         </div>
       </section>
 
-      <aside className="lg:sticky lg:top-28 self-start space-y-4">
-        <div className="rounded-3xl bg-card p-6 shadow-soft border border-border/60">
+      <aside className="self-start space-y-4 lg:sticky lg:top-28">
+        <div className="rounded-3xl border border-border/60 bg-card p-6 shadow-soft">
           <h2 className="font-semibold">Happy with it?</h2>
-          <p className="text-sm text-muted-foreground mt-1">Download print-ready files for free, or order physical stickers shipped to your door.</p>
-          <Button asChild size="lg" className="w-full mt-5 rounded-full shadow-glow bg-gradient-sage text-primary-foreground hover:opacity-95">
-            <Link to="/studio/checkout">Continue <ArrowRight className="h-4 w-4 ml-1" /></Link>
+          <p className="mt-1 text-sm text-muted-foreground">Download print-ready files for free, or order physical stickers shipped to your door.</p>
+          <Button asChild size="lg" className="mt-5 w-full rounded-full bg-gradient-sage text-primary-foreground shadow-glow hover:opacity-95">
+            <Link to="/studio/checkout">
+              Continue <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
           </Button>
-          <Button variant="ghost" asChild className="w-full mt-2 rounded-full">
-            <Link to="/studio/customize"><ArrowLeft className="h-4 w-4 mr-1" /> Back to edit</Link>
+          <Button variant="ghost" asChild className="mt-2 w-full rounded-full">
+            <Link to="/studio/create">
+              <ArrowLeft className="mr-1 h-4 w-4" /> Back to edit
+            </Link>
           </Button>
         </div>
       </aside>
