@@ -1015,14 +1015,14 @@ function TextLayerEditor({ compact = false }: { compact?: boolean }) {
   return (
     <div className={compact ? "space-y-4" : "rounded-2xl border border-border/60 bg-muted/30 p-4"}>
       <div className="mb-3 flex items-center justify-between">
-        <SectionLabel label="Text layers" tooltip="Add live text overlays or bake stylized AI lettering directly into the artwork." compact />
+        <SectionLabel label="Text layers" tooltip="Describe the text you want — we'll style it onto the sticker." compact />
         <Button variant="ghost" size="sm" onClick={studio.addTextLayer} disabled={studio.textLayers.length >= 2} className="rounded-full">
           <Plus className="mr-1 h-4 w-4" /> Add
         </Button>
       </div>
       {studio.textLayers.length === 0 ? (
         <p className="rounded-2xl border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
-          Add up to 2 text layers — type them live or bake them into the artwork with AI.
+          Describe what you want and we'll style it onto the sticker.
         </p>
       ) : (
         <div className="space-y-3">
