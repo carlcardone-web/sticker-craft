@@ -28,7 +28,7 @@ import {
 } from "@/lib/studio-store";
 import { buildPrompt, nearestNamedColor, normalizeForModeration } from "@/lib/prompt-builder";
 import { FONT_LIBRARY, ensureFontLoaded, detectFontFormat, getFontFamilyCSS, type FontCategory } from "@/lib/fonts";
-import { generateSticker } from "@/server/generate-sticker";
+import { generateSticker, getGenerationStatus } from "@/server/generate-sticker";
 import { resolveTextLayer } from "@/server/resolve-text-layer";
 import { uploadReferenceImage } from "@/server/upload-reference.functions";
 import {
