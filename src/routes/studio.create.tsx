@@ -340,12 +340,17 @@ function CreatePage() {
       setError(moderationError);
       return;
     }
-    if (referencePayload.totalBytes > MAX_REFERENCE_TOTAL_BYTES) {
-      setError("Your references are too heavy to generate reliably. Remove one or upload a smaller image.");
+    if (pendingUploads > 0) {
+      setError("A reference image is still uploading. Please wait a moment and try again.");
       return;
     }
-    if (referencePayload.inlineCount > 0 && referencePayload.totalBytes > MAX_REFERENCE_INLINE_BYTES) {
-      setError("A reference is still too large to process. Try re-uploading a smaller image.");
+    const inlineRef = studio.referenceImages.find((r) => r.url.startsWith("data:"));
+    if (inlineRef) {
+      setError("A reference image didn't upload correctly. Remove it and re-upload before generating.");
+      return;
+    }
+    if (referencePayload.totalBytes > MAX_REFERENCE_TOTAL_BYTES) {
+      setError("Your references are too heavy to generate reliably. Remove one or upload a smaller image.");
       return;
     }
 
@@ -353,12 +358,13 @@ function CreatePage() {
     setLoading(true);
 
     try {
+      const hostedRefs = studio.referenceImages.filter((r) => !r.url.startsWith("data:"));
       const { imageUrl } = await generateSticker({
         data: {
           prompt: built.prompt,
           negativePrompt: built.negativePrompt,
           seed,
-          referenceImages: studio.referenceImages,
+          referenceImages: hostedRefs,
         },
       });
 
