@@ -275,6 +275,7 @@ function CreatePage() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [textOpen, setTextOpen] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(true);
+  const [pendingUploads, setPendingUploads] = useState(0);
 
   const activeContainer = CONTAINER_CHOICES.find((choice) => choice.id === studio.container);
   const activeShape = SHAPES.find((entry) => entry.id === studio.shape);
