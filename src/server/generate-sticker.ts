@@ -65,9 +65,11 @@ export const generateSticker = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
 
     // Reap any stale jobs first (cheap, indexed)
-    await supabase.rpc("reap_stale_generation_jobs").catch((e) => {
+    try {
+      await supabase.rpc("reap_stale_generation_jobs");
+    } catch (e) {
       console.warn("reap_stale_generation_jobs failed", e);
-    });
+    }
 
     const { data: job, error } = await supabase
       .from("generation_jobs")
@@ -104,7 +106,11 @@ export const getGenerationStatus = createServerFn({ method: "POST" })
     const { supabase } = context;
 
     // Opportunistic reaper
-    await supabase.rpc("reap_stale_generation_jobs").catch(() => undefined);
+    try {
+      await supabase.rpc("reap_stale_generation_jobs");
+    } catch {
+      // ignore
+    }
 
     const { data: row, error } = await supabase
       .from("generation_jobs")
