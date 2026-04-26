@@ -52,6 +52,13 @@ export const generateSticker = createServerFn({ method: "POST" })
           }))
       : [];
 
+    const inlineRef = refs.find((r) => r.url.startsWith("data:"));
+    if (inlineRef) {
+      throw new Error(
+        "A reference image is still uploading or wasn't uploaded successfully. Remove it and re-upload before generating.",
+      );
+    }
+
     if (refs.length > 3) throw new Error("Up to 3 reference images allowed");
     const totalSize = refs.reduce((sum, ref) => sum + ref.url.length, 0);
     if (totalSize > MAX_REFERENCE_TOTAL_SIZE) {
