@@ -163,6 +163,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_generation_worker_secret: { Args: never; Returns: string }
       reap_stale_generation_jobs: { Args: never; Returns: undefined }
     }
     Enums: {
