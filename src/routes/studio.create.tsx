@@ -392,7 +392,7 @@ function CreatePage() {
 
   function onReferenceUpload(files: FileList | null) {
     if (!files?.length) return;
-    const remaining = MAX_REFS - studio.referenceImages.length;
+    const remaining = MAX_REFS - studio.referenceImages.length - pendingUploads;
     if (remaining <= 0) {
       toast.error(`You can attach up to ${MAX_REFS} reference images.`);
       return;
@@ -413,14 +413,20 @@ function CreatePage() {
             toast.error(`${file.name} is too large after encoding. Try a smaller image.`);
             return;
           }
+          setPendingUploads((n) => n + 1);
           try {
             const { imageUrl } = await uploadReferenceImage({ data: { imageUrl: dataUrl } });
+            if (!imageUrl || imageUrl.startsWith("data:")) {
+              throw new Error("Upload did not return a hosted URL.");
+            }
             studio.addReferenceImage(imageUrl, "Subject", 0.7);
             setError(null);
             toast.success(`${file.name} added as a reference.`);
           } catch (e) {
             const message = e instanceof Error ? e.message : "Could not upload reference image.";
             toast.error(message);
+          } finally {
+            setPendingUploads((n) => Math.max(0, n - 1));
           }
         };
         reader.onerror = () => toast.error(`Could not read ${file.name}.`);
