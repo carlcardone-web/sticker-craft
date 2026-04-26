@@ -1037,74 +1037,51 @@ function TextLayerEditor({ compact = false }: { compact?: boolean }) {
 
 function TextLayerCard({ layer }: { layer: TextLayer }) {
   const studio = useStudio();
-  const [generating, setGenerating] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const aiRefs = layer.aiReferences ?? [];
+  const [description, setDescription] = useState<string>(layer.aiPrompt ?? "");
+  const [resolving, setResolving] = useState(false);
+  const styleAppliedRef = useRef(false);
+  const lastResolvedRef = useRef<string>("");
 
   useEffect(() => {
     FONT_LIBRARY.forEach((font) => ensureFontLoaded(font.family));
   }, []);
 
-  function onTextReferenceUpload(files: FileList | null) {
-    if (!files?.length) return;
-    const remaining = 2 - aiRefs.length;
-    if (remaining <= 0) {
-      toast.error("Up to 2 references per text layer.");
-      return;
-    }
+  // Debounced resolve when description changes
+  useEffect(() => {
+    const trimmed = description.trim();
+    if (!trimmed) return;
+    if (trimmed === lastResolvedRef.current) return;
 
-    Array.from(files)
-      .slice(0, remaining)
-      .forEach((file) => {
-        if (file.size > 6 * 1024 * 1024) {
-          toast.error(`${file.name} is over 6MB and was skipped.`);
-          return;
+    const handle = setTimeout(async () => {
+      lastResolvedRef.current = trimmed;
+      setResolving(true);
+      try {
+        const result = await resolveTextLayer({ data: { description: trimmed } });
+        // Persist the description on the layer so it survives reloads
+        const patch: Partial<TextLayer> = { aiPrompt: trimmed, text: result.text };
+        if (!styleAppliedRef.current) {
+          if (result.suggestedFont) {
+            patch.font = result.suggestedFont;
+            ensureFontLoaded(result.suggestedFont);
+          }
+          if (result.suggestedColor) patch.color = result.suggestedColor;
+          if (result.suggestedPosition === "top") patch.y = 18;
+          else if (result.suggestedPosition === "middle") patch.y = 50;
+          else if (result.suggestedPosition === "bottom") patch.y = 82;
+          styleAppliedRef.current = true;
         }
-        const reader = new FileReader();
-        reader.onload = () => {
-          studio.addTextLayerReference(layer.id, reader.result as string, "Font style");
-        };
-        reader.readAsDataURL(file);
-      });
-  }
+        studio.updateTextLayer(layer.id, patch);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Could not interpret text");
+      } finally {
+        setResolving(false);
+      }
+    }, 600);
 
-  async function handleBakeText() {
-    if (!studio.imageUrl) {
-      toast.error("Generate the artwork first.");
-      return;
-    }
-    if (!layer.text.trim()) {
-      toast.error("Add the phrase to render first.");
-      return;
-    }
-    if (!(layer.aiPrompt ?? "").trim()) {
-      toast.error("Describe the style you want.");
-      return;
-    }
-
-    setGenerating(true);
-    try {
-      const { imageUrl } = await editStickerWithText({
-        data: {
-          baseImageUrl: studio.imageUrl,
-          text: layer.text,
-          prompt: layer.aiPrompt ?? "",
-          references: aiRefs.map((reference) => ({ url: reference.url, role: reference.role })),
-          shape: studio.shape,
-          container: studio.container,
-          volume: studio.volume,
-          color: layer.color,
-        },
-      });
-      studio.setImage(imageUrl);
-      studio.removeTextLayer(layer.id);
-      toast.success("Text baked into the artwork.");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Generation failed");
-    } finally {
-      setGenerating(false);
-    }
-  }
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [description, layer.id]);
 
   function onFontFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -1140,182 +1117,96 @@ function TextLayerCard({ layer }: { layer: TextLayer }) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between gap-2">
-        <Tabs value={layer.mode ?? "text"} onValueChange={(value) => studio.updateTextLayer(layer.id, { mode: value as "text" | "ai" })} className="flex-1">
-          <TabsList className="grid h-auto w-full grid-cols-2 rounded-full bg-muted/60 p-0.5">
-            <TabsTrigger value="text" className="rounded-full px-3 py-1 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              Type text
-            </TabsTrigger>
-            <TabsTrigger value="ai" className="rounded-full px-3 py-1 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <Sparkles className="mr-1 h-3 w-3" /> AI text
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1">
+          <Label className="text-xs font-medium text-foreground">Describe the text</Label>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={`e.g. "Sarah & Tom" in elegant gold script along the top`}
+            className="mt-1.5 min-h-20 rounded-xl text-sm"
+          />
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            {resolving
+              ? "Interpreting…"
+              : layer.text
+                ? `Rendering: "${layer.text}"`
+                : "Tip: put exact words in quotes to keep them verbatim."}
+          </p>
+        </div>
         <Button variant="ghost" size="icon" onClick={() => studio.removeTextLayer(layer.id)} className="shrink-0 rounded-xl">
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="mt-3 space-y-3">
-        <Input
-          value={layer.text}
-          onChange={(e) => studio.updateTextLayer(layer.id, { text: e.target.value })}
-          className="rounded-xl"
-          placeholder="The phrase to render"
-        />
-
-        {(layer.mode ?? "text") === "text" ? (
-          <>
-            <div className="grid grid-cols-[1fr_auto] gap-2">
-              <select
-                value={layer.font}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  studio.updateTextLayer(layer.id, { font: next });
-                  ensureFontLoaded(next);
-                }}
-                className="min-w-0 rounded-xl border border-input bg-background px-3 py-2 text-sm"
-                style={{ fontFamily: getFontFamilyCSS(layer.font, studio.customFonts) }}
-              >
-                {studio.customFonts.length > 0 && (
-                  <optgroup label="Your fonts">
-                    {studio.customFonts.map((font) => (
-                      <option key={font.id} value={`user-${font.id}`} style={{ fontFamily: `'user-${font.id}', system-ui` }}>
-                        {font.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {groupedFonts.map(({ category, fonts }) => (
-                  <optgroup key={category} label={category}>
-                    {fonts.map((font) => (
-                      <option key={font.family} value={font.family} style={{ fontFamily: `'${font.family}', ${font.fallback}` }}>
-                        {font.family}
-                      </option>
-                    ))}
-                  </optgroup>
+      <div className="mt-4 space-y-3">
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <select
+            value={layer.font}
+            onChange={(e) => {
+              const next = e.target.value;
+              studio.updateTextLayer(layer.id, { font: next });
+              ensureFontLoaded(next);
+            }}
+            className="min-w-0 rounded-xl border border-input bg-background px-3 py-2 text-sm"
+            style={{ fontFamily: getFontFamilyCSS(layer.font, studio.customFonts) }}
+          >
+            {studio.customFonts.length > 0 && (
+              <optgroup label="Your fonts">
+                {studio.customFonts.map((font) => (
+                  <option key={font.id} value={`user-${font.id}`} style={{ fontFamily: `'user-${font.id}', system-ui` }}>
+                    {font.name}
+                  </option>
                 ))}
-              </select>
-              <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} className="h-9 rounded-xl px-3">
-                <Upload className="h-3.5 w-3.5" />
-              </Button>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2"
-                className="hidden"
-                onChange={onFontFileChange}
-              />
-            </div>
-            {layer.font.startsWith("user-") ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const id = layer.font.slice("user-".length);
-                  studio.removeCustomFont(id);
-                  studio.updateTextLayer(layer.id, { font: "Inter" });
-                }}
-                className="text-[11px] text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
-              >
-                Remove uploaded font
-              </button>
-            ) : (
-              <p className="text-[10px] text-muted-foreground/80">Upload your own .ttf, .otf, .woff or .woff2 (max 2MB).</p>
+              </optgroup>
             )}
-            <input
-              type="color"
-              value={layer.color}
-              onChange={(e) => studio.updateTextLayer(layer.id, { color: e.target.value })}
-              className="h-9 w-full cursor-pointer rounded-xl border border-input bg-background"
-              aria-label="Text color"
-            />
-            <div>
-              <Label className="text-xs text-muted-foreground">Size {layer.size}px</Label>
-              <Slider value={[layer.size]} min={10} max={48} step={1} onValueChange={(values) => studio.updateTextLayer(layer.id, { size: values[0] ?? layer.size })} className="mt-2" />
-            </div>
-          </>
-        ) : (
-          <div className="space-y-3">
-            <Textarea
-              value={layer.aiPrompt ?? ""}
-              onChange={(e) => studio.updateTextLayer(layer.id, { aiPrompt: e.target.value })}
-              placeholder="e.g. flowing gold calligraphy with elegant flourishes"
-              className="min-h-20 rounded-xl text-sm"
-            />
-            <div className="flex flex-wrap gap-1.5">
-              {STYLE_CHIPS.map((chip) => (
-                <button
-                  key={chip}
-                  type="button"
-                  onClick={() => {
-                    const current = layer.aiPrompt ?? "";
-                    const next = current ? `${current}, ${chip.toLowerCase()}` : chip;
-                    studio.updateTextLayer(layer.id, { aiPrompt: next });
-                  }}
-                  className="rounded-full bg-muted px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-            <div>
-              <p className="mb-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">References (optional, up to 2)</p>
-              <div className="grid grid-cols-3 gap-2">
-                {aiRefs.map((reference, index) => (
-                  <div key={reference.id} className="overflow-hidden rounded-xl border border-border bg-card">
-                    <div className="relative aspect-square">
-                      <img src={reference.url} alt={`Reference ${index + 1}`} className="h-full w-full object-cover" loading="lazy" />
-                      <button
-                        type="button"
-                        onClick={() => studio.removeTextLayerReference(layer.id, reference.id)}
-                        className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background/90"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                    <select
-                      value={reference.role}
-                      onChange={(e) => studio.updateTextLayerReference(layer.id, reference.id, e.target.value)}
-                      className="w-full border-t border-border bg-muted/60 px-1 py-1 text-[10px] outline-none"
-                    >
-                      {TEXT_REF_ROLES.map((role) => (
-                        <option key={role} value={role}>{role}</option>
-                      ))}
-                    </select>
-                  </div>
+            {groupedFonts.map(({ category, fonts }) => (
+              <optgroup key={category} label={category}>
+                {fonts.map((font) => (
+                  <option key={font.family} value={font.family} style={{ fontFamily: `'${font.family}', ${font.fallback}` }}>
+                    {font.family}
+                  </option>
                 ))}
-                {aiRefs.length < 2 && (
-                  <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-border transition-colors hover:border-primary/50 hover:bg-accent/30">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        onTextReferenceUpload(e.target.files);
-                        e.target.value = "";
-                      }}
-                    />
-                    <ImagePlus className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground">Add</span>
-                  </label>
-                )}
-              </div>
-            </div>
-            {!studio.imageUrl && <p className="text-[11px] italic text-muted-foreground">Generate the artwork first, then bake the styled text into it.</p>}
-            <Button onClick={handleBakeText} disabled={generating || !studio.imageUrl} size="sm" className="w-full rounded-full bg-gradient-sage text-primary-foreground hover:opacity-95">
-              {generating ? (
-                <>
-                  <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Baking text into artwork…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5" /> Bake text into artwork
-                </>
-              )}
-            </Button>
-          </div>
+              </optgroup>
+            ))}
+          </select>
+          <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} className="h-9 rounded-xl px-3">
+            <Upload className="h-3.5 w-3.5" />
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2"
+            className="hidden"
+            onChange={onFontFileChange}
+          />
+        </div>
+        {layer.font.startsWith("user-") ? (
+          <button
+            type="button"
+            onClick={() => {
+              const id = layer.font.slice("user-".length);
+              studio.removeCustomFont(id);
+              studio.updateTextLayer(layer.id, { font: "Inter" });
+            }}
+            className="text-[11px] text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
+          >
+            Remove uploaded font
+          </button>
+        ) : (
+          <p className="text-[10px] text-muted-foreground/80">Upload your own .ttf, .otf, .woff or .woff2 (max 2MB).</p>
         )}
+        <input
+          type="color"
+          value={layer.color}
+          onChange={(e) => studio.updateTextLayer(layer.id, { color: e.target.value })}
+          className="h-9 w-full cursor-pointer rounded-xl border border-input bg-background"
+          aria-label="Text color"
+        />
+        <div>
+          <Label className="text-xs text-muted-foreground">Size {layer.size}px</Label>
+          <Slider value={[layer.size]} min={10} max={48} step={1} onValueChange={(values) => studio.updateTextLayer(layer.id, { size: values[0] ?? layer.size })} className="mt-2" />
+        </div>
 
         <div className="grid grid-cols-2 gap-2">
           <div>
