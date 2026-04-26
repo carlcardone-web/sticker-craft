@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      generation_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_detail: Json | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          image_url: string | null
+          negative_prompt: string | null
+          prompt: string
+          reference_images: Json
+          seed: number | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          error_detail?: Json | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          image_url?: string | null
+          negative_prompt?: string | null
+          prompt: string
+          reference_images?: Json
+          seed?: number | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_detail?: Json | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          image_url?: string | null
+          negative_prompt?: string | null
+          prompt?: string
+          reference_images?: Json
+          seed?: number | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           artwork_url: string
@@ -109,7 +163,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_generation_worker_secret: { Args: never; Returns: string }
+      reap_stale_generation_jobs: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

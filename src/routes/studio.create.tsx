@@ -28,7 +28,7 @@ import {
 } from "@/lib/studio-store";
 import { buildPrompt, nearestNamedColor, normalizeForModeration } from "@/lib/prompt-builder";
 import { FONT_LIBRARY, ensureFontLoaded, detectFontFormat, getFontFamilyCSS, type FontCategory } from "@/lib/fonts";
-import { generateSticker } from "@/server/generate-sticker";
+import { generateSticker, getGenerationStatus } from "@/server/generate-sticker";
 import { resolveTextLayer } from "@/server/resolve-text-layer";
 import { uploadReferenceImage } from "@/server/upload-reference.functions";
 import {
@@ -276,6 +276,17 @@ function CreatePage() {
   const [textOpen, setTextOpen] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(true);
   const [pendingUploads, setPendingUploads] = useState(0);
+  const pollRef = useRef<{ timer: ReturnType<typeof setTimeout> | null; cancelled: boolean }>({
+    timer: null,
+    cancelled: false,
+  });
+
+  useEffect(() => {
+    return () => {
+      pollRef.current.cancelled = true;
+      if (pollRef.current.timer) clearTimeout(pollRef.current.timer);
+    };
+  }, []);
 
   const activeContainer = CONTAINER_CHOICES.find((choice) => choice.id === studio.container);
   const activeShape = SHAPES.find((entry) => entry.id === studio.shape);
@@ -357,9 +368,15 @@ function CreatePage() {
     const seed = studio.issueSeed(mode);
     setLoading(true);
 
+    // Cancel any in-flight poll before starting a new generation
+    pollRef.current.cancelled = true;
+    if (pollRef.current.timer) clearTimeout(pollRef.current.timer);
+    const ticket = { timer: null as ReturnType<typeof setTimeout> | null, cancelled: false };
+    pollRef.current = ticket;
+
     try {
       const hostedRefs = studio.referenceImages.filter((r) => !r.url.startsWith("data:"));
-      const { imageUrl } = await generateSticker({
+      const { jobId } = await generateSticker({
         data: {
           prompt: built.prompt,
           negativePrompt: built.negativePrompt,
@@ -368,20 +385,59 @@ function CreatePage() {
         },
       });
 
-      studio.setImage(imageUrl);
-      studio.setSeed(seed);
-      studio.setLastGeneration({
-        prompt: built.prompt,
-        negativePrompt: built.negativePrompt,
-        seed,
-        params: generationParams,
-      });
-      toast.success(mode === "reuse" ? "Regenerated with the same seed." : "Sticker generated.");
+      const POLL_INTERVAL_MS = 2000;
+      const POLL_TIMEOUT_MS = 180_000;
+      const startedAt = Date.now();
+
+      const finish = (imageUrl: string) => {
+        studio.setImage(imageUrl);
+        studio.setSeed(seed);
+        studio.setLastGeneration({
+          prompt: built.prompt,
+          negativePrompt: built.negativePrompt,
+          seed,
+          params: generationParams,
+        });
+        toast.success(mode === "reuse" ? "Regenerated with the same seed." : "Sticker generated.");
+        setLoading(false);
+      };
+
+      const fail = (message: string) => {
+        setError(message);
+        toast.error(message);
+        setLoading(false);
+      };
+
+      const tick = async () => {
+        if (ticket.cancelled) return;
+        if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+          fail("Generation took too long. Please try again.");
+          return;
+        }
+        try {
+          const status = await getGenerationStatus({ data: { jobId } });
+          if (ticket.cancelled) return;
+          if (status.status === "done" && status.imageUrl) {
+            finish(status.imageUrl);
+            return;
+          }
+          if (status.status === "failed") {
+            fail(status.errorMessage || "Generation failed. Please try again.");
+            return;
+          }
+          ticket.timer = setTimeout(tick, POLL_INTERVAL_MS);
+        } catch (e) {
+          if (ticket.cancelled) return;
+          const message = e instanceof Error ? e.message : "Could not check generation status.";
+          fail(message);
+        }
+      };
+
+      ticket.timer = setTimeout(tick, POLL_INTERVAL_MS);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Something went wrong.";
       setError(message);
       toast.error(message);
-    } finally {
       setLoading(false);
     }
   }

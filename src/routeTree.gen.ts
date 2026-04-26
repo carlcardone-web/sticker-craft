@@ -24,6 +24,7 @@ import { Route as StudioCheckoutRouteImport } from './routes/studio.checkout'
 import { Route as StudioBottleRouteImport } from './routes/studio.bottle'
 import { Route as ApiGelatoWebhookRouteImport } from './routes/api.gelato-webhook'
 import { Route as StudioOrderIdRouteImport } from './routes/studio.order.$id'
+import { Route as ApiPublicRunGenerationJobRouteImport } from './routes/api/public/run-generation-job'
 
 const StudioRoute = StudioRouteImport.update({
   id: '/studio',
@@ -100,6 +101,12 @@ const StudioOrderIdRoute = StudioOrderIdRouteImport.update({
   path: '/order/$id',
   getParentRoute: () => StudioRoute,
 } as any)
+const ApiPublicRunGenerationJobRoute =
+  ApiPublicRunGenerationJobRouteImport.update({
+    id: '/api/public/run-generation-job',
+    path: '/api/public/run-generation-job',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/studio/preview': typeof StudioPreviewRoute
   '/studio/return': typeof StudioReturnRoute
   '/studio/': typeof StudioIndexRoute
+  '/api/public/run-generation-job': typeof ApiPublicRunGenerationJobRoute
   '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRoutesByTo {
@@ -132,6 +140,7 @@ export interface FileRoutesByTo {
   '/studio/preview': typeof StudioPreviewRoute
   '/studio/return': typeof StudioReturnRoute
   '/studio': typeof StudioIndexRoute
+  '/api/public/run-generation-job': typeof ApiPublicRunGenerationJobRoute
   '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRoutesById {
@@ -150,6 +159,7 @@ export interface FileRoutesById {
   '/studio/preview': typeof StudioPreviewRoute
   '/studio/return': typeof StudioReturnRoute
   '/studio/': typeof StudioIndexRoute
+  '/api/public/run-generation-job': typeof ApiPublicRunGenerationJobRoute
   '/studio/order/$id': typeof StudioOrderIdRoute
 }
 export interface FileRouteTypes {
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/studio/preview'
     | '/studio/return'
     | '/studio/'
+    | '/api/public/run-generation-job'
     | '/studio/order/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/studio/preview'
     | '/studio/return'
     | '/studio'
+    | '/api/public/run-generation-job'
     | '/studio/order/$id'
   id:
     | '__root__'
@@ -202,6 +214,7 @@ export interface FileRouteTypes {
     | '/studio/preview'
     | '/studio/return'
     | '/studio/'
+    | '/api/public/run-generation-job'
     | '/studio/order/$id'
   fileRoutesById: FileRoutesById
 }
@@ -213,6 +226,7 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   StudioRoute: typeof StudioRouteWithChildren
   ApiGelatoWebhookRoute: typeof ApiGelatoWebhookRoute
+  ApiPublicRunGenerationJobRoute: typeof ApiPublicRunGenerationJobRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -322,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudioOrderIdRouteImport
       parentRoute: typeof StudioRoute
     }
+    '/api/public/run-generation-job': {
+      id: '/api/public/run-generation-job'
+      path: '/api/public/run-generation-job'
+      fullPath: '/api/public/run-generation-job'
+      preLoaderRoute: typeof ApiPublicRunGenerationJobRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -358,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   StudioRoute: StudioRouteWithChildren,
   ApiGelatoWebhookRoute: ApiGelatoWebhookRoute,
+  ApiPublicRunGenerationJobRoute: ApiPublicRunGenerationJobRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
