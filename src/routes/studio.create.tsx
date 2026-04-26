@@ -716,7 +716,7 @@ function CreatePage() {
               <Collapsible open={textOpen} onOpenChange={setTextOpen}>
                 <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 text-left">
                   <div>
-                    <p className="text-sm font-medium text-foreground">+ Add text overlay</p>
+                    <p className="text-sm font-medium text-foreground">Text layers</p>
                     <p className="mt-1 text-xs text-muted-foreground">Optional</p>
                   </div>
                   <ChevronRight className={["h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200", textOpen ? "rotate-90" : ""].join(" ")} />
