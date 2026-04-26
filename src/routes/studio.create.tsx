@@ -70,17 +70,6 @@ const PROMPT_WARNING_LENGTH = 250;
 const MAX_REFS = 3;
 const MAX_REFERENCE_FILE_SIZE = 6 * 1024 * 1024;
 const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
-const TEXT_REF_ROLES = ["Font style", "Color palette", "Mood"];
-const STYLE_CHIPS = [
-  "Flowing calligraphy",
-  "Bold serif",
-  "Hand-painted",
-  "Vintage signpainter",
-  "Neon glow",
-  "Gold foil",
-  "Brush script",
-  "Engraved",
-];
 const CATEGORY_ORDER: FontCategory[] = ["Sans", "Serif", "Script", "Display", "Mono"];
 
 type Template = {
