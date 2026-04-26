@@ -1,10 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { persistArtwork } from "@/server/upload-artwork.server";
 
 type ReferenceImage = { url: string; role?: string; weight?: number };
 
-type Body = {
+type EnqueueBody = {
   prompt: string;
   negativePrompt?: string | null;
   seed?: number | null;
@@ -13,30 +12,20 @@ type Body = {
 
 const MAX_IMAGE_SEED = 2_147_483_647;
 const MAX_REFERENCE_TOTAL_SIZE = 8_000_000;
-const IMAGE_MODEL = "google/gemini-3.1-flash-image-preview";
 
 function normalizeSeed(seed: number | null | undefined) {
   if (typeof seed !== "number" || !Number.isFinite(seed)) return null;
-  const normalized = Math.abs(Math.trunc(seed)) % (MAX_IMAGE_SEED + 1);
-  return normalized;
+  return Math.abs(Math.trunc(seed)) % (MAX_IMAGE_SEED + 1);
 }
 
-function summarizeReferencePayload(referenceImages: ReferenceImage[]) {
-  return referenceImages.reduce(
-    (summary, ref) => {
-      const isDataUrl = ref.url.startsWith("data:");
-      summary.totalChars += ref.url.length;
-      summary.dataUrlCount += isDataUrl ? 1 : 0;
-      summary.hostedUrlCount += isDataUrl ? 0 : 1;
-      return summary;
-    },
-    { totalChars: 0, dataUrlCount: 0, hostedUrlCount: 0 },
-  );
-}
-
+/**
+ * Enqueue a generation job. Returns immediately with a jobId.
+ * The actual AI call runs in a background worker route triggered via pg_net.
+ * Client polls getGenerationStatus to know when the result is ready.
+ */
 export const generateSticker = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: Body) => {
+  .inputValidator((input: EnqueueBody) => {
     if (!input?.prompt || typeof input.prompt !== "string") {
       throw new Error("Prompt is required");
     }
@@ -73,74 +62,65 @@ export const generateSticker = createServerFn({ method: "POST" })
     };
   })
   .handler(async ({ data, context }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) {
-      throw new Error("AI is not configured. Please contact support.");
-    }
+    const { supabase, userId } = context;
 
-    const payloadSummary = summarizeReferencePayload(data.referenceImages);
-    console.info("generateSticker request", {
-      model: IMAGE_MODEL,
-      promptLength: data.prompt.length,
-      referenceCount: data.referenceImages.length,
-      referenceChars: payloadSummary.totalChars,
-      dataUrlCount: payloadSummary.dataUrlCount,
-      hostedUrlCount: payloadSummary.hostedUrlCount,
-      seed: data.seed,
+    // Reap any stale jobs first (cheap, indexed)
+    await supabase.rpc("reap_stale_generation_jobs").catch((e) => {
+      console.warn("reap_stale_generation_jobs failed", e);
     });
 
-    const userContent = [
-      {
-        type: "text",
-        text: [data.prompt, data.negativePrompt ? `Negative prompt: ${data.negativePrompt}` : ""]
-          .filter(Boolean)
-          .join("\n\n"),
-      },
-      ...data.referenceImages.map((ref) => ({ type: "image_url", image_url: { url: ref.url } })),
-    ];
+    const { data: job, error } = await supabase
+      .from("generation_jobs")
+      .insert({
+        user_id: userId,
+        status: "pending",
+        prompt: data.prompt,
+        negative_prompt: data.negativePrompt || null,
+        seed: data.seed,
+        reference_images: data.referenceImages,
+      })
+      .select("id")
+      .single();
 
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: IMAGE_MODEL,
-        messages: [{ role: "user", content: userContent }],
-        modalities: ["image", "text"],
-        seed: data.seed ?? undefined,
-        negative_prompt: data.negativePrompt || undefined,
-      }),
-    });
-
-    if (!res.ok) {
-      if (res.status === 429) {
-        throw new Error("Too many requests. Give it a moment and try again.");
-      }
-      if (res.status === 402) {
-        throw new Error("AI credits are exhausted. Add credits in your workspace settings to keep generating.");
-      }
-      if (res.status === 504 || res.status === 524 || res.status === 408) {
-        throw new Error("Generation took too long. Try again with fewer or smaller reference images.");
-      }
-      const text = await res.text().catch(() => "");
-      console.error("Lovable AI error", res.status, text, {
-        model: IMAGE_MODEL,
-        promptLength: data.prompt.length,
-        referenceCount: data.referenceImages.length,
-        referenceChars: payloadSummary.totalChars,
-      });
-      throw new Error("Image generation failed. Please try again.");
+    if (error || !job) {
+      console.error("enqueue generation job failed", error);
+      throw new Error("Could not start generation. Please try again.");
     }
 
-    const json = (await res.json()) as {
-      choices?: Array<{ message?: { images?: Array<{ image_url?: { url?: string } }> } }>;
+    return { jobId: job.id as string };
+  });
+
+type StatusBody = { jobId: string };
+
+export const getGenerationStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: StatusBody) => {
+    if (!input?.jobId || typeof input.jobId !== "string") {
+      throw new Error("jobId is required");
+    }
+    return { jobId: input.jobId };
+  })
+  .handler(async ({ data, context }) => {
+    const { supabase } = context;
+
+    // Opportunistic reaper
+    await supabase.rpc("reap_stale_generation_jobs").catch(() => undefined);
+
+    const { data: row, error } = await supabase
+      .from("generation_jobs")
+      .select("status, image_url, error_message")
+      .eq("id", data.jobId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("getGenerationStatus failed", error);
+      throw new Error("Could not check generation status.");
+    }
+    if (!row) throw new Error("Generation job not found.");
+
+    return {
+      status: row.status as "pending" | "running" | "done" | "failed",
+      imageUrl: row.image_url as string | null,
+      errorMessage: row.error_message as string | null,
     };
-
-    const url = json.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    if (!url) throw new Error("No image returned. Try a different prompt.");
-
-    const publicUrl = await persistArtwork({ imageUrl: url, userId: context.userId });
-    return { imageUrl: publicUrl };
   });
