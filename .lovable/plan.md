@@ -1,69 +1,35 @@
-## Simplify the Text layers panel into a single AI-driven prompt
+## Fix the image generation timeout
 
-### Goal
-Get rid of the "Type text / AI text" segmented toggle and the "Bake text into artwork" flow. Replace them with a single textarea where the user describes the text they want — content + style hints together. The base sticker is never re-baked. The text layer is always rendered client-side as an overlay using the existing font, color, size, and position controls.
+### What is happening
+The generation request is still sending a full `data:image/jpeg;base64,...` reference image directly to the image model. The network log shows the reference is embedded in the `generateSticker` request body instead of being sent as a short hosted URL. That makes the payload very large and the AI request times out before it can return an image.
 
-### New behavior
+### Plan
+1. **Stop inline reference images from reaching generation**
+   - Update the generation flow so `generateSticker` only receives hosted `http(s)` reference URLs.
+   - If any persisted old references in the browser are still `data:` URLs, upload/convert them before generation or block them with a clear message.
 
-In each text layer card:
+2. **Make reference uploads safer**
+   - Change the upload flow to add a temporary “uploading” reference state or only add the reference after the backend returns a hosted URL.
+   - Add client-side checks that prevent generate/regenerate while a reference upload is still in progress.
+   - If upload fails, show a clear toast and do not leave the base64 image in the stored references.
 
-- **Remove** the `Tabs` (Type text / AI text) at the top of the card.
-- **Remove** the "Bake text into artwork" button and the entire AI-bake branch.
-- **Remove** the references grid (font-style reference uploads) inside the layer card — those were AI-bake inputs.
-- **Remove** the standalone `Input` for "The phrase to render".
-- **Add** a single `Textarea` labeled "Describe the text" with placeholder:
-  `e.g. "Sarah & Tom" in elegant gold script along the top`
-- **Keep** below it, in this order: font picker + font upload, color picker, size slider, horizontal slider, vertical slider.
-- **Keep** the trash button to remove the layer.
+3. **Clean up old stored base64 references**
+   - Add a lightweight startup cleanup/migration for the studio store so old `data:` reference images from prior versions are removed or re-uploaded instead of silently reused.
+   - This directly addresses the current stuck state where the same base64 reference is repeatedly sent and times out.
 
-Also in the panel header (`TextLayerEditor`):
-- **Rename** the empty-state copy from "type them live or bake them into the artwork with AI" to something like "Describe what you want and we'll style it onto the sticker."
-- **Remove** mention of "+ Add text overlay" wording on the collapsible trigger — relabel to "Text layers (optional)" so it isn't framed as an overlay-add action. The collapsible itself stays.
+4. **Harden the server function**
+   - In `src/server/generate-sticker.ts`, reject `data:` references before calling the AI model with a user-friendly error.
+   - Keep the timeout handling, but make sure the client sees the clearer reason when references are the cause.
 
-### Resolve prompt → final string + style
-
-When the user edits the prompt or blurs it (debounced ~600ms), call a small server function that:
-
-1. Takes the freeform description.
-2. Returns `{ text: string, suggestedFont?: string, suggestedColor?: string, suggestedPosition?: "top"|"middle"|"bottom" }`.
-3. **Quoted-text rule**: if the description contains text in straight or smart quotes, use that verbatim as `text` and skip AI rewriting for the content (still allow style suggestions).
-
-The returned `text` is written into `layer.text`. Suggested style fields are applied **only the first time** for that layer (so the user's later manual edits to font/color/position are not overwritten on every keystroke). Track this with a per-layer `styleApplied` flag in local state inside `TextLayerCard` — no store changes required for that flag.
-
-The text overlay continues to render client-side via the existing `StickerArtwork` text rendering path using `layer.text`, `layer.font`, `layer.color`, `layer.size`, `layer.x`, `layer.y`. No image regeneration. No call to `editStickerWithText`.
-
-### Server function
-
-Add `src/server/resolve-text-layer.ts`:
-
-- `createServerFn({ method: "POST" })` guarded by `requireSupabaseAuth`.
-- Input: `{ description: string }` (max ~400 chars).
-- Uses Lovable AI Gateway (`https://ai.gateway.lovable.dev/v1/chat/completions`) with a fast text model (`google/gemini-2.5-flash-lite`) and JSON output, system prompt instructing it to:
-  - Extract the literal phrase the user wants (respect quoted text verbatim, otherwise propose a short phrase).
-  - Suggest font family from a small allowed list (matching `FONT_LIBRARY` categories, e.g. "Playfair Display", "Inter", "Caveat", "Bebas Neue", "Lora").
-  - Suggest a hex color.
-  - Suggest a position bucket: `top` / `middle` / `bottom`.
-- Returns the parsed JSON. Handles 429/402 like existing functions.
-
-Map `suggestedPosition` → `y` in the client (top≈18, middle≈50, bottom≈82).
+5. **Optional speed improvement**
+   - Use the faster image model only if quality remains acceptable, and keep the prompt payload concise.
+   - The main fix is reference URL conversion, not just changing the model.
 
 ### Files to update
-
 - `src/routes/studio.create.tsx`
-  - Rewrite `TextLayerCard` per above (drop Tabs, references, bake button; add description Textarea + debounced resolver call; keep font/color/size/x/y).
-  - Update `TextLayerEditor` empty-state copy.
-  - Update the surrounding Collapsible label ("+ Add text overlay" → "Text layers (optional)").
-  - Remove now-unused imports (`Tabs*`, `editStickerWithText`, `ImagePlus`, `STYLE_CHIPS`, `TEXT_REF_ROLES`, `Sparkles` if only used here, etc.).
-- `src/server/resolve-text-layer.ts` (new) — described above.
-- `src/lib/studio-store.ts` — no schema change needed; `mode`, `aiPrompt`, `aiReferences`, `aiImageUrl`, `aiWidth` become unused at the UI level but stay in the type for backward-compatible persistence. (No migration needed.)
+- `src/lib/studio-store.ts`
+- `src/server/generate-sticker.ts`
+- Possibly `src/server/upload-reference.functions.ts` / `src/server/upload-artwork.server.ts` if upload validation needs tightening
 
-Out of scope:
-- Backend image generation, prompt builder, container flow, top bar — unchanged.
-- The `editStickerWithText` server function stays in the codebase but is no longer called from the studio page.
-
-### Acceptance
-
-- The Text layers panel shows a single textarea per layer, no segmented control, no bake button, no reference uploads.
-- Typing a description (or pasting `"Sarah & Tom" in gold script at the top`) populates the layer text and applies a sensible font/color/position once, then leaves manual tweaks alone.
-- The sticker preview updates immediately via the existing client-side overlay; no new image generation request is fired.
-- Font picker, font upload, color, size, horizontal, vertical sliders all still work and are visible below the prompt.
+### Expected result
+After this fix, clicking generate should no longer send megabytes of base64 image data to the AI request. Existing problematic references will be cleaned up or converted, generation will fail fast with a helpful message if a reference is invalid, and normal image generation should complete much more reliably.

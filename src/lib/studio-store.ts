@@ -347,7 +347,17 @@ export const useStudio = create<StudioState>()(
     }),
     {
       name: "lovable-studio-v2",
-      version: 2,
+      version: 3,
+      migrate: (persisted: any, fromVersion) => {
+        if (!persisted) return persisted;
+        if (fromVersion < 3 && Array.isArray(persisted.referenceImages)) {
+          // Drop legacy data: URL references — they balloon the AI request and cause timeouts.
+          persisted.referenceImages = persisted.referenceImages.filter(
+            (r: ReferenceImage) => r?.url && !r.url.startsWith("data:"),
+          );
+        }
+        return persisted;
+      },
       storage: createJSONStorage(() => {
         if (typeof window !== "undefined") return window.localStorage;
         const noop: Storage = {

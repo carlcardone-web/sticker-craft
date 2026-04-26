@@ -275,6 +275,7 @@ function CreatePage() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [textOpen, setTextOpen] = useState(false);
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(true);
+  const [pendingUploads, setPendingUploads] = useState(0);
 
   const activeContainer = CONTAINER_CHOICES.find((choice) => choice.id === studio.container);
   const activeShape = SHAPES.find((entry) => entry.id === studio.shape);
@@ -339,12 +340,17 @@ function CreatePage() {
       setError(moderationError);
       return;
     }
-    if (referencePayload.totalBytes > MAX_REFERENCE_TOTAL_BYTES) {
-      setError("Your references are too heavy to generate reliably. Remove one or upload a smaller image.");
+    if (pendingUploads > 0) {
+      setError("A reference image is still uploading. Please wait a moment and try again.");
       return;
     }
-    if (referencePayload.inlineCount > 0 && referencePayload.totalBytes > MAX_REFERENCE_INLINE_BYTES) {
-      setError("A reference is still too large to process. Try re-uploading a smaller image.");
+    const inlineRef = studio.referenceImages.find((r) => r.url.startsWith("data:"));
+    if (inlineRef) {
+      setError("A reference image didn't upload correctly. Remove it and re-upload before generating.");
+      return;
+    }
+    if (referencePayload.totalBytes > MAX_REFERENCE_TOTAL_BYTES) {
+      setError("Your references are too heavy to generate reliably. Remove one or upload a smaller image.");
       return;
     }
 
@@ -352,12 +358,13 @@ function CreatePage() {
     setLoading(true);
 
     try {
+      const hostedRefs = studio.referenceImages.filter((r) => !r.url.startsWith("data:"));
       const { imageUrl } = await generateSticker({
         data: {
           prompt: built.prompt,
           negativePrompt: built.negativePrompt,
           seed,
-          referenceImages: studio.referenceImages,
+          referenceImages: hostedRefs,
         },
       });
 
@@ -385,7 +392,7 @@ function CreatePage() {
 
   function onReferenceUpload(files: FileList | null) {
     if (!files?.length) return;
-    const remaining = MAX_REFS - studio.referenceImages.length;
+    const remaining = MAX_REFS - studio.referenceImages.length - pendingUploads;
     if (remaining <= 0) {
       toast.error(`You can attach up to ${MAX_REFS} reference images.`);
       return;
@@ -406,14 +413,20 @@ function CreatePage() {
             toast.error(`${file.name} is too large after encoding. Try a smaller image.`);
             return;
           }
+          setPendingUploads((n) => n + 1);
           try {
             const { imageUrl } = await uploadReferenceImage({ data: { imageUrl: dataUrl } });
+            if (!imageUrl || imageUrl.startsWith("data:")) {
+              throw new Error("Upload did not return a hosted URL.");
+            }
             studio.addReferenceImage(imageUrl, "Subject", 0.7);
             setError(null);
             toast.success(`${file.name} added as a reference.`);
           } catch (e) {
             const message = e instanceof Error ? e.message : "Could not upload reference image.";
             toast.error(message);
+          } finally {
+            setPendingUploads((n) => Math.max(0, n - 1));
           }
         };
         reader.onerror = () => toast.error(`Could not read ${file.name}.`);
