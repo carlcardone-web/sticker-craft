@@ -69,7 +69,7 @@ const MAX_PROMPT_LENGTH = 300;
 const PROMPT_WARNING_LENGTH = 250;
 const MAX_REFS = 3;
 const MAX_REFERENCE_FILE_SIZE = 6 * 1024 * 1024;
-const ROLE_PRESETS = ["Subject", "Background", "Color palette", "Style", "Pose", "Mood"];
+const ROLE_PRESETS = ["Subject", "Font / Logo", "Background", "Color palette", "Style", "Pose", "Mood"];
 const CATEGORY_ORDER: FontCategory[] = ["Sans", "Serif", "Script", "Display", "Mono"];
 
 type Template = {
