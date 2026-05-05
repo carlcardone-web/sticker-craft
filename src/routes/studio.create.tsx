@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEv
 import { toast } from "sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { MentionTextarea } from "@/components/studio/MentionTextarea";
-import { ContainerPreviewScene, getLabelCaption } from "@/components/studio/ContainerPreviewScene";
+import { getLabelCaption } from "@/components/studio/ContainerPreviewScene";
+import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
