@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
 import { getLabelDimensions, type StickerShape, type TextLayer, type ImageTransform, useStudio } from "@/lib/studio-store";
 import { ensureFontLoaded, getFontFamilyCSS, injectCustomFonts } from "@/lib/fonts";
 
@@ -13,6 +13,8 @@ type Props = {
     showDimensions?: boolean;
     showScaleHint?: boolean;
     imageTransform?: ImageTransform;
+    onTransformChange?: (patch: Partial<ImageTransform>) => void;
+    interactive?: boolean;
     className?: string;
 };
 
