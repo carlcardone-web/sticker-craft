@@ -539,8 +539,16 @@ function CreatePage() {
                   container={studio.container}
                   volume={studio.volume}
                   imageTransform={studio.imageTransform}
+                  onTransformChange={studio.setImageTransform}
+                  interactive
                   size={420}
                 />
+              </div>
+              {studio.imageUrl ? (
+                <p className="mt-2 text-center text-[11px] text-muted-foreground/80">Drag to pan · scroll to zoom · use the controls below to fine-tune.</p>
+              ) : null}
+              <div className={studio.imageUrl ? "mt-4" : "hidden"}>
+                <ImageFramingControls compact />
               </div>
               {previewCaption ? <p className="mt-4 text-center text-xs tabular-nums text-muted-foreground">{previewCaption}</p> : null}
               <p className="mt-2 text-center text-[11px] text-muted-foreground/80">See it on your bottle in the next step.</p>
@@ -1061,6 +1069,34 @@ function ImageFramingControls({ compact = false }: { compact?: boolean }) {
               onValueChange={(values) => studio.setImageTransform({ offsetY: values[0] ?? studio.imageTransform.offsetY })}
               className="mt-2"
             />
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Rotation</Label>
+            <span className="text-[11px] tabular-nums text-muted-foreground">{Math.round(studio.imageTransform.rotation ?? 0)}°</span>
+          </div>
+          <Slider
+            value={[studio.imageTransform.rotation ?? 0]}
+            min={-180}
+            max={180}
+            step={1}
+            onValueChange={(values) => studio.setImageTransform({ rotation: values[0] ?? studio.imageTransform.rotation ?? 0 })}
+            className="mt-2"
+          />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {[-90, -15, 0, 15, 90].map((deg) => (
+              <Button
+                key={deg}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 rounded-full px-2.5 text-[11px]"
+                onClick={() => studio.setImageTransform({ rotation: deg })}
+              >
+                {deg > 0 ? `+${deg}°` : `${deg}°`}
+              </Button>
+            ))}
           </div>
         </div>
       </div>

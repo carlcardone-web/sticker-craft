@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent, type WheelEvent as ReactWheelEvent } from "react";
 import { getLabelDimensions, type StickerShape, type TextLayer, type ImageTransform, useStudio } from "@/lib/studio-store";
 import { ensureFontLoaded, getFontFamilyCSS, injectCustomFonts } from "@/lib/fonts";
 
@@ -13,6 +13,8 @@ type Props = {
     showDimensions?: boolean;
     showScaleHint?: boolean;
     imageTransform?: ImageTransform;
+    onTransformChange?: (patch: Partial<ImageTransform>) => void;
+    interactive?: boolean;
     className?: string;
 };
 
@@ -60,6 +62,8 @@ export function StickerArtwork({
     showDimensions = false,
     showScaleHint = false,
     imageTransform,
+    onTransformChange,
+    interactive = false,
     className = "",
 }: Props) {
     const customFonts = useStudio((s) => s.customFonts);
@@ -69,7 +73,42 @@ export function StickerArtwork({
     }, [textLayers]);
 
     const dims = getLabelDimensions(container, volume);
-    const t = imageTransform ?? { scale: 1, offsetX: 0, offsetY: 0 };
+    const t = imageTransform ?? { scale: 1, offsetX: 0, offsetY: 0, rotation: 0 };
+    const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number; w: number; h: number } | null>(null);
+
+    function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+        if (!interactive || !onTransformChange || !imageUrl) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        dragRef.current = {
+          startX: e.clientX,
+          startY: e.clientY,
+          baseX: t.offsetX,
+          baseY: t.offsetY,
+          w: rect.width,
+          h: rect.height,
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+        if (!dragRef.current || !onTransformChange) return;
+        const d = dragRef.current;
+        const dx = ((e.clientX - d.startX) / d.w) * 100;
+        const dy = ((e.clientY - d.startY) / d.h) * 100;
+        onTransformChange({
+          offsetX: Math.max(-50, Math.min(50, d.baseX + dx)),
+          offsetY: Math.max(-50, Math.min(50, d.baseY + dy)),
+        });
+    }
+    function handlePointerUp(e: ReactPointerEvent<HTMLDivElement>) {
+        dragRef.current = null;
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+    }
+    function handleWheel(e: ReactWheelEvent<HTMLDivElement>) {
+        if (!interactive || !onTransformChange || !imageUrl) return;
+        e.preventDefault();
+        const next = Math.max(0.8, Math.min(2.5, t.scale * (e.deltaY > 0 ? 0.95 : 1.05)));
+        onTransformChange({ scale: Number(next.toFixed(3)) });
+    }
 
     // Real-world dimensions (cm) used both for shape ratio AND on-screen scaling.
     // For square/circle/rounded we collapse to a square using the smaller edge,
@@ -121,7 +160,16 @@ export function StickerArtwork({
           >
             <div
               className="relative h-full w-full overflow-hidden bg-muted"
-              style={{ borderRadius: radius }}
+              style={{
+                borderRadius: radius,
+                cursor: interactive && imageUrl ? (dragRef.current ? "grabbing" : "grab") : undefined,
+                touchAction: interactive ? "none" : undefined,
+              }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              onWheel={interactive ? handleWheel : undefined}
             >
               {imageUrl ? (
                 <img
@@ -130,7 +178,7 @@ export function StickerArtwork({
                   className="h-full w-full object-cover"
                   draggable={false}
                   style={{
-                    transform: `translate(${t.offsetX}%, ${t.offsetY}%) scale(${t.scale})`,
+                    transform: `translate(${t.offsetX}%, ${t.offsetY}%) scale(${t.scale}) rotate(${t.rotation ?? 0}deg)`,
                     transformOrigin: "center",
                   }}
                 />

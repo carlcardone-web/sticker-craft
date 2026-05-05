@@ -22,7 +22,7 @@ export type TextLayer = {
   rotation?: number;
 };
 
-export type ImageTransform = { scale: number; offsetX: number; offsetY: number };
+export type ImageTransform = { scale: number; offsetX: number; offsetY: number; rotation: number };
 export type ReferenceImage = { id: string; url: string; role: string; weight?: number };
 
 export type GenerationParams = {
@@ -120,7 +120,7 @@ export type StudioState = {
   reset: () => void;
 };
 
-const DEFAULT_TRANSFORM: ImageTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+const DEFAULT_TRANSFORM: ImageTransform = { scale: 1, offsetX: 0, offsetY: 0, rotation: 0 };
 const MAX_REFERENCES = 3;
 const DEFAULT_REFERENCE_WEIGHT = 0.7;
 const MAX_IMAGE_SEED = 2_147_483_647;
