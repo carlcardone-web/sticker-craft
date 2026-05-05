@@ -160,7 +160,16 @@ export function StickerArtwork({
           >
             <div
               className="relative h-full w-full overflow-hidden bg-muted"
-              style={{ borderRadius: radius }}
+              style={{
+                borderRadius: radius,
+                cursor: interactive && imageUrl ? (dragRef.current ? "grabbing" : "grab") : undefined,
+                touchAction: interactive ? "none" : undefined,
+              }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerUp}
+              onWheel={interactive ? handleWheel : undefined}
             >
               {imageUrl ? (
                 <img
@@ -169,7 +178,7 @@ export function StickerArtwork({
                   className="h-full w-full object-cover"
                   draggable={false}
                   style={{
-                    transform: `translate(${t.offsetX}%, ${t.offsetY}%) scale(${t.scale})`,
+                    transform: `translate(${t.offsetX}%, ${t.offsetY}%) scale(${t.scale}) rotate(${t.rotation ?? 0}deg)`,
                     transformOrigin: "center",
                   }}
                 />
