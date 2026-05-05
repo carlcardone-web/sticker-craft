@@ -3,7 +3,8 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ChangeEv
 import { toast } from "sonner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { MentionTextarea } from "@/components/studio/MentionTextarea";
-import { ContainerPreviewScene, getLabelCaption } from "@/components/studio/ContainerPreviewScene";
+import { getLabelCaption } from "@/components/studio/ContainerPreviewScene";
+import { StickerArtwork } from "@/components/studio/StickerArtwork";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -529,8 +530,8 @@ function CreatePage() {
 
             <div className={["rounded-[12px] border border-border/60 bg-card p-5 md:p-6", mobilePreviewOpen ? "block" : "hidden md:block"].join(" ")}>
               <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">Live preview</p>
-              <div className="mt-4 overflow-hidden rounded-[12px] border border-border/50 bg-muted/25 p-3 sm:p-4">
-                <ContainerPreviewScene
+              <div className="mt-4 flex items-center justify-center overflow-hidden rounded-[12px] border border-border/50 bg-muted/25 p-3 sm:p-4">
+                <StickerArtwork
                   imageUrl={studio.imageUrl}
                   shape={studio.shape}
                   textLayers={studio.textLayers}
@@ -538,11 +539,11 @@ function CreatePage() {
                   container={studio.container}
                   volume={studio.volume}
                   imageTransform={studio.imageTransform}
-                  size="hero"
-                  className="max-h-[300px] md:max-h-none"
+                  size={420}
                 />
               </div>
               {previewCaption ? <p className="mt-4 text-center text-xs tabular-nums text-muted-foreground">{previewCaption}</p> : null}
+              <p className="mt-2 text-center text-[11px] text-muted-foreground/80">See it on your bottle in the next step.</p>
             </div>
           </aside>
 
