@@ -539,8 +539,16 @@ function CreatePage() {
                   container={studio.container}
                   volume={studio.volume}
                   imageTransform={studio.imageTransform}
+                  onTransformChange={studio.setImageTransform}
+                  interactive
                   size={420}
                 />
+              </div>
+              {studio.imageUrl ? (
+                <p className="mt-2 text-center text-[11px] text-muted-foreground/80">Drag to pan · scroll to zoom · use the controls below to fine-tune.</p>
+              ) : null}
+              <div className={studio.imageUrl ? "mt-4" : "hidden"}>
+                <ImageFramingControls compact />
               </div>
               {previewCaption ? <p className="mt-4 text-center text-xs tabular-nums text-muted-foreground">{previewCaption}</p> : null}
               <p className="mt-2 text-center text-[11px] text-muted-foreground/80">See it on your bottle in the next step.</p>
