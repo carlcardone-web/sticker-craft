@@ -62,6 +62,8 @@ export function StickerArtwork({
     showDimensions = false,
     showScaleHint = false,
     imageTransform,
+    onTransformChange,
+    interactive = false,
     className = "",
 }: Props) {
     const customFonts = useStudio((s) => s.customFonts);
@@ -71,7 +73,42 @@ export function StickerArtwork({
     }, [textLayers]);
 
     const dims = getLabelDimensions(container, volume);
-    const t = imageTransform ?? { scale: 1, offsetX: 0, offsetY: 0 };
+    const t = imageTransform ?? { scale: 1, offsetX: 0, offsetY: 0, rotation: 0 };
+    const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number; w: number; h: number } | null>(null);
+
+    function handlePointerDown(e: ReactPointerEvent<HTMLDivElement>) {
+        if (!interactive || !onTransformChange || !imageUrl) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        dragRef.current = {
+          startX: e.clientX,
+          startY: e.clientY,
+          baseX: t.offsetX,
+          baseY: t.offsetY,
+          w: rect.width,
+          h: rect.height,
+        };
+        e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
+        if (!dragRef.current || !onTransformChange) return;
+        const d = dragRef.current;
+        const dx = ((e.clientX - d.startX) / d.w) * 100;
+        const dy = ((e.clientY - d.startY) / d.h) * 100;
+        onTransformChange({
+          offsetX: Math.max(-50, Math.min(50, d.baseX + dx)),
+          offsetY: Math.max(-50, Math.min(50, d.baseY + dy)),
+        });
+    }
+    function handlePointerUp(e: ReactPointerEvent<HTMLDivElement>) {
+        dragRef.current = null;
+        try { e.currentTarget.releasePointerCapture(e.pointerId); } catch {}
+    }
+    function handleWheel(e: ReactWheelEvent<HTMLDivElement>) {
+        if (!interactive || !onTransformChange || !imageUrl) return;
+        e.preventDefault();
+        const next = Math.max(0.8, Math.min(2.5, t.scale * (e.deltaY > 0 ? 0.95 : 1.05)));
+        onTransformChange({ scale: Number(next.toFixed(3)) });
+    }
 
     // Real-world dimensions (cm) used both for shape ratio AND on-screen scaling.
     // For square/circle/rounded we collapse to a square using the smaller edge,
