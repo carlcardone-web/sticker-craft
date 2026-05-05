@@ -1071,6 +1071,34 @@ function ImageFramingControls({ compact = false }: { compact?: boolean }) {
             />
           </div>
         </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">Rotation</Label>
+            <span className="text-[11px] tabular-nums text-muted-foreground">{Math.round(studio.imageTransform.rotation ?? 0)}°</span>
+          </div>
+          <Slider
+            value={[studio.imageTransform.rotation ?? 0]}
+            min={-180}
+            max={180}
+            step={1}
+            onValueChange={(values) => studio.setImageTransform({ rotation: values[0] ?? studio.imageTransform.rotation ?? 0 })}
+            className="mt-2"
+          />
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {[-90, -15, 0, 15, 90].map((deg) => (
+              <Button
+                key={deg}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 rounded-full px-2.5 text-[11px]"
+                onClick={() => studio.setImageTransform({ rotation: deg })}
+              >
+                {deg > 0 ? `+${deg}°` : `${deg}°`}
+              </Button>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
